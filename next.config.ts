@@ -1,0 +1,11 @@
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  transpilePackages: ["react-grid-layout", "react-resizable", "react-draggable"],
+  output: "standalone"
+
+}
+
+export default nextConfig
+
+

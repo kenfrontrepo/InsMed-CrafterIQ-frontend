@@ -1,0 +1,161 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Menu, RefreshCw } from "lucide-react";
+import { SyncSettingsPage } from "@/components/sync/sync-settings-page";
+import { useSidebarStore } from "@/stores/sidebar-store";
+import { SidebarNav } from "./sidebar-nav";
+import logo from "../logo.jpeg";
+
+export function LayoutShell({ children }: { children: React.ReactNode }) {
+  const sidebarOpen = useSidebarStore((s) => s.open);
+  const toggleSidebar = useSidebarStore((s) => s.toggle);
+  const setOpen = useSidebarStore((s) => s.setOpen);
+
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 768px)");
+    const update = (matches: boolean) => {
+      setIsDesktop(matches);
+      if (!matches) setOpen(false);
+    };
+    update(mql.matches);
+    const handler = (e: MediaQueryListEvent) => update(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, [setOpen]);
+
+  return (
+    <div
+      className="grid grid-rows-[minmax(56px,auto)_1fr] h-screen overflow-hidden bg-page transition-[grid-template-columns] duration-300 ease-in-out"
+      style={{
+        gridTemplateColumns: (isDesktop && sidebarOpen) ? "260px 1fr" : "0px 1fr",
+      }}
+    >
+      {/* Top Nav */}
+      <nav className="col-span-2 flex items-center min-h-14 px-4 sm:px-5 bg-card border-b border-border-subtle z-10 gap-2 sm:gap-3">
+        <div className="flex items-center gap-1 min-w-0 shrink-0">
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            className="inline-flex items-center justify-center size-9 shrink-0 rounded-md text-text-tertiary hover:text-text-primary hover:bg-hover active:bg-hover/80 transition-colors"
+          >
+            <Menu className="size-[18px]" strokeWidth={2} aria-hidden />
+          </button>
+          <Link
+            href="/chat"
+            className="flex items-center min-w-0 py-1 pl-0.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+          >
+            <Image
+              src={logo}
+              alt="PlayPower logo"
+              className="h-7 sm:h-8 w-auto max-w-[min(200px,42vw)] object-contain object-left"
+              priority
+              sizes="200px"
+            />
+          </Link>
+        </div>
+
+        <div className="flex flex-1 min-w-0 items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] leading-tight text-text-tertiary">
+          <span className="h-4 w-px shrink-0 bg-border-subtle" aria-hidden />
+          <span className="truncate">
+            Powered by{" "}
+            <span className="font-medium text-text-secondary">CrafterIQ</span>
+          </span>
+        </div>
+
+        {/* Right */}
+        <div className="ml-auto flex items-center gap-2">
+          {/* <Link
+            href="/Boards"
+            className="flex items-center gap-1.5 px-2.5 py-[5px] border border-border-mid rounded-md text-xs text-text-secondary hover:bg-hover hover:text-text-primary transition-colors"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-[13px] h-[13px] opacity-60"
+            >
+              <rect x="2" y="2" width="12" height="12" rx="2" />
+              <path d="M2 6h12M6 6v8" />
+            </svg>
+            Boards
+          </Link> */}
+          <Link
+            href="/normalization"
+            className="flex items-center gap-1.5 px-2.5 py-[5px] border border-border-mid rounded-md text-xs text-text-secondary hover:bg-hover hover:text-text-primary transition-colors"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-[13px] h-[13px] opacity-60"
+            >
+              <path d="M2 4h12M2 8h12M2 12h12" />
+              <circle cx="5" cy="4" r="1" fill="currentColor" />
+              <circle cx="5" cy="8" r="1" fill="currentColor" />
+              <circle cx="5" cy="12" r="1" fill="currentColor" />
+            </svg>
+            Normalization
+          </Link>
+          <div className="w-px h-5 bg-border-subtle" />
+          <SignedOut>
+            <SignInButton />
+          </SignedOut>
+          <SignedIn>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "w-7 h-7",
+                },
+              }}
+            >
+              <UserButton.UserProfilePage
+                label="Sync Settings"
+                url="sync-settings"
+                labelIcon={<RefreshCw style={{ width: 16, height: 16 }} />}
+              >
+                <SyncSettingsPage />
+              </UserButton.UserProfilePage>
+            </UserButton>
+          </SignedIn>
+        </div>
+      </nav>
+
+      {/* Desktop sidebar — stays in grid flow so <main> always lands in col 2 */}
+      <aside
+        className="overflow-hidden transition-[width] duration-300 ease-in-out"
+        style={{ width: (isDesktop && sidebarOpen) ? 260 : 0 }}
+      >
+        <div className="w-[260px] h-full hidden md:block">
+          <SidebarNav />
+        </div>
+      </aside>
+
+      {/* Mobile sidebar — fixed overlay, slides in from left */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 md:hidden ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        onClick={() => setOpen(false)}
+        aria-hidden
+      />
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300 ease-in-out md:hidden shadow-xl`}
+        style={{ transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)" }}
+      >
+        <SidebarNav />
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex flex-col overflow-hidden relative">
+        {children}
+      </main>
+    </div>
+  );
+}
