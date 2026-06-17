@@ -81,7 +81,6 @@ export const elasticSearchService = {
   productCategory: (filterVal: string) =>
     searchIndex("playpower_sales_productcategory_u00001", "PRODUCT_CATEGORY", filterVal),
 
-  // Opportunities indexes
   opportunityIndustry: (filterVal: string) =>
     searchIndex("playpower_opps_industry_u00001", "industry", filterVal),
 
@@ -111,7 +110,6 @@ export interface SearchCategory {
   fetchMethod: (filterVal: string) => Promise<ElasticHit[]>;
 }
 
-// Sales context search categories
 export const SALES_SEARCH_CATEGORIES: SearchCategory[] = [
   {
     key: "brand",
@@ -169,7 +167,6 @@ export const SALES_SEARCH_CATEGORIES: SearchCategory[] = [
   },
 ];
 
-// Opportunities context search categories
 export const OPPORTUNITIES_SEARCH_CATEGORIES: SearchCategory[] = [
   {
     key: "industry",
@@ -215,10 +212,8 @@ export const OPPORTUNITIES_SEARCH_CATEGORIES: SearchCategory[] = [
   },
 ];
 
-// Default export for backward compatibility (sales context)
 export const SEARCH_CATEGORIES = SALES_SEARCH_CATEGORIES;
 
-// Helper function to get categories by schema name
 export function getSearchCategoriesBySchema(schemaName?: string): SearchCategory[] {
   if (schemaName?.toLowerCase() === "opportunities") {
     return OPPORTUNITIES_SEARCH_CATEGORIES;
