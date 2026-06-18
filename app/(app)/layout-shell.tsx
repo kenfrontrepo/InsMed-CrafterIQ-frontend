@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
-import { Menu, RefreshCw } from "lucide-react";
-import { SyncSettingsPage } from "@/components/sync/sync-settings-page";
+import { Menu } from "lucide-react";
+// import { RefreshCw } from "lucide-react";
+// import { SyncSettingsPage } from "@/components/sync/sync-settings-page";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { SidebarNav } from "./sidebar-nav";
-import logo from "../logo.jpeg";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const sidebarOpen = useSidebarStore((s) => s.open);
@@ -51,43 +50,23 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
             href="/chat"
             className="flex items-center min-w-0 py-1 pl-0.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
-            <Image
-              src={logo}
-              alt="PlayPower logo"
-              className="h-7 sm:h-8 w-auto max-w-[min(200px,42vw)] object-contain object-left"
-              priority
-              sizes="200px"
-            />
+            <span className="text-lg sm:text-xl font-semibold tracking-tight text-text-primary">
+              CrafterIQ
+            </span>
           </Link>
         </div>
 
-        <div className="flex flex-1 min-w-0 items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] leading-tight text-text-tertiary">
+        {/* <div className="flex flex-1 min-w-0 items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] leading-tight text-text-tertiary">
           <span className="h-4 w-px shrink-0 bg-border-subtle" aria-hidden />
           <span className="truncate">
             Powered by{" "}
             <span className="font-medium text-text-secondary">CrafterIQ</span>
           </span>
-        </div>
+        </div> */}
 
         {/* Right */}
         <div className="ml-auto flex items-center gap-2">
           {/* <Link
-            href="/Boards"
-            className="flex items-center gap-1.5 px-2.5 py-[5px] border border-border-mid rounded-md text-xs text-text-secondary hover:bg-hover hover:text-text-primary transition-colors"
-          >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-[13px] h-[13px] opacity-60"
-            >
-              <rect x="2" y="2" width="12" height="12" rx="2" />
-              <path d="M2 6h12M6 6v8" />
-            </svg>
-            Boards
-          </Link> */}
-          <Link
             href="/normalization"
             className="flex items-center gap-1.5 px-2.5 py-[5px] border border-border-mid rounded-md text-xs text-text-secondary hover:bg-hover hover:text-text-primary transition-colors"
           >
@@ -105,7 +84,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
             </svg>
             Normalization
           </Link>
-          <div className="w-px h-5 bg-border-subtle" />
+          <div className="w-px h-5 bg-border-subtle" /> */}
           <SignedOut>
             <SignInButton />
           </SignedOut>
@@ -116,15 +95,16 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                   avatarBox: "w-7 h-7",
                 },
               }}
+            />
+            {/* Sync Settings — hidden until pipeline API is available in Insmed
+            <UserButton.UserProfilePage
+              label="Sync Settings"
+              url="sync-settings"
+              labelIcon={<RefreshCw style={{ width: 16, height: 16 }} />}
             >
-              <UserButton.UserProfilePage
-                label="Sync Settings"
-                url="sync-settings"
-                labelIcon={<RefreshCw style={{ width: 16, height: 16 }} />}
-              >
-                <SyncSettingsPage />
-              </UserButton.UserProfilePage>
-            </UserButton>
+              <SyncSettingsPage />
+            </UserButton.UserProfilePage>
+            */}
           </SignedIn>
         </div>
       </nav>

@@ -1,7 +1,59 @@
 import { useCallback } from "react";
-import { useChatStore, type StreamingEvent } from "@/stores/chat-store";
+import {
+  useChatStore,
+  type StreamingEvent,
+  type VisualSpec,
+} from "@/stores/chat-store";
 import { useUserId } from "@/hooks/use-user-id";
 import { streamChat } from "@/lib/api/chatApi";
+
+type InsmedStreamEvent = {
+  event: string;
+  status?: string;
+  message?: string;
+  phase?: string;
+  progress?: number;
+  conversation_id?: string | null;
+  sysoutput?: string;
+  follow_up_questions?: string[];
+  visual_spec?: VisualSpec;
+  message_id?: string;
+  result?: StreamingEvent["result"];
+};
+
+const STREAM_PHASES: Record<string, { phase: string; message: string; progress: number }> = {
+  workflow_start: { phase: "understanding", message: "Starting analysis…", progress: 10 },
+  retrieving_memory: { phase: "understanding", message: "Loading conversation context…", progress: 20 },
+  generating_query: { phase: "querying", message: "Generating query…", progress: 40 },
+  query_ready: { phase: "querying", message: "Query ready", progress: 50 },
+  executing_query: { phase: "executing", message: "Running query…", progress: 60 },
+  data_ready: { phase: "executing", message: "Data loaded", progress: 70 },
+  generating_insights: { phase: "analyzing", message: "Generating insights…", progress: 85 },
+  visual_ready: { phase: "analyzing", message: "Building visualization…", progress: 90 },
+  insights_ready: { phase: "analyzing", message: "Insights ready", progress: 95 },
+};
+
+function toStreamResult(
+  event: InsmedStreamEvent
+): NonNullable<StreamingEvent["result"]> {
+  return {
+    sysoutput: event.sysoutput || "",
+    conversation_id: event.conversation_id || event.result?.conversation_id || "",
+    message_id: event.message_id || event.result?.message_id,
+    follow_up_questions:
+      event.follow_up_questions || event.result?.follow_up_questions || [],
+    visual_spec: event.visual_spec ||
+      event.result?.visual_spec || {
+        chart_type: "",
+        title: "",
+        x: [],
+        series: [],
+        x_label: "",
+        y_label: "",
+        is_visual: false,
+      },
+  };
+}
 
 export function useChatStream() {
   const { userId } = useUserId();
@@ -14,25 +66,23 @@ export function useChatStream() {
     (state) => state.finalizeStreamingMessage
   );
   const setLoading = useChatStore((state) => state.setLoading);
-  const selectedContext = useChatStore((state) => state.selectedContext);
   const activeChat = useChatStore((state) => state.activeChat);
 
   const sendMessage = useCallback(
-    async (question: string, options?: { is_report?: boolean }) => {
-      const isReport = options?.is_report ?? false;
+    async (question: string) => {
+      if (!userId) return;
 
       addMessage({ role: "user", content: question });
 
       setLoading(true);
       const messageId = addStreamingMessage();
+      let latestResult: NonNullable<StreamingEvent["result"]> | null = null;
 
       try {
         const response = await streamChat(
-          userId!,
+          userId,
           question,
-          selectedContext,
-          activeChat?.conversationId || null,
-          isReport
+          activeChat?.conversationId || null
         );
 
         const reader = response.body?.getReader();
@@ -49,36 +99,54 @@ export function useChatStream() {
 
           buffer += decoder.decode(value, { stream: true });
 
-          // Process complete SSE events
           const lines = buffer.split("\n");
-          buffer = lines.pop() || ""; // Keep incomplete line in buffer
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6).trim();
+            if (!line.startsWith("data: ")) continue;
 
-              if (data === "[DONE]") {
-                setLoading(false);
-                return;
+            const data = line.slice(6).trim();
+            if (!data || data === "[DONE]") continue;
+
+            try {
+              const event = JSON.parse(data) as InsmedStreamEvent;
+
+              if (event.event === "insights_ready") {
+                latestResult = toStreamResult(event);
               }
 
-              try {
-                const event: StreamingEvent = JSON.parse(data);
-
-                if (event.event === "workflow_complete" && event.result) {
-                  finalizeStreamingMessage(messageId, event.result);
-                } else {
-                  updateStreamingMessage(messageId, event);
-                }
-              } catch {
-                console.warn("Invalid JSON in SSE:", data);
+              if (event.event === "workflow_complete") {
+                const result = event.result
+                  ? toStreamResult(event)
+                  : latestResult ||
+                    toStreamResult({
+                      ...event,
+                      sysoutput: "No response received.",
+                    });
+                finalizeStreamingMessage(messageId, result);
+                continue;
               }
+
+              const phase = STREAM_PHASES[event.event];
+              if (phase) {
+                updateStreamingMessage(messageId, {
+                  event: event.event,
+                  message: event.message || phase.message,
+                  phase: event.phase || phase.phase,
+                  progress: event.progress ?? phase.progress,
+                });
+              }
+            } catch {
+              console.warn("Invalid JSON in SSE:", data);
             }
           }
         }
+
+        if (latestResult) {
+          finalizeStreamingMessage(messageId, latestResult);
+        }
       } catch (error) {
         console.error("Chat stream error:", error);
-        // Update message with error
         finalizeStreamingMessage(messageId, {
           sysoutput: "Sorry, something went wrong. Please try again.",
           conversation_id: "",
@@ -103,7 +171,6 @@ export function useChatStream() {
       updateStreamingMessage,
       finalizeStreamingMessage,
       setLoading,
-      selectedContext,
       activeChat?.conversationId,
       userId,
     ]

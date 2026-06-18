@@ -197,7 +197,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
           timestamp: new Date(m.timestamp),
-          context: (data.context as ChatContext) || "sales",
+          context: "sales",
           visualSpec: m.visual_spec
             ? (m.visual_spec as unknown as VisualSpec)
             : undefined,
@@ -218,7 +218,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(),
-        context: (data.context as ChatContext) || "sales",
+        context: "sales",
         conversationId,
       };
 

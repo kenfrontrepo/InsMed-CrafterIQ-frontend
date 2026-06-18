@@ -1,1 +1,3 @@
-export const API_BASE_URL = "https://app-pp-sales-chat.azurewebsites.net";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://crafter-insmed.azurewebsites.net";

@@ -39,6 +39,9 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
           }
         }
+        if (clerk?.user?.id && config.headers) {
+          config.headers["X-User-ID"] = clerk.user.id;
+        }
       }
     } catch (error) {
       console.warn("Failed to get Clerk token:", error);

@@ -1,19 +1,21 @@
 "use client";
 
-import { memo, useState, useCallback, useRef } from "react";
+import { memo, useState, useRef } from "react";
+// import { memo, useState, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Pin, PinOff, Eye, EyeOff, FileText, ArrowRight } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { Eye, EyeOff, FileText, ArrowRight } from "lucide-react";
+// import { Pin, PinOff, Eye, EyeOff, FileText, ArrowRight } from "lucide-react";
+// import { useQueryClient } from "@tanstack/react-query";
+// import { toast } from "sonner";
 import type { Message } from "@/stores/chat-store";
 import dynamic from "next/dynamic";
 import { markdownComponents } from "./markdown-components";
-import { useUserId } from "@/hooks/use-user-id";
-import { createPin, deletePin as apiDeletePin } from "@/lib/api/pinsApi";
-import { getApiErrorMessage } from "@/lib/api/axios";
+// import { useUserId } from "@/hooks/use-user-id";
+// import { createPin, deletePin as apiDeletePin } from "@/lib/api/pinsApi";
+// import { getApiErrorMessage } from "@/lib/api/axios";
 
 // Dynamically import chart component to reduce initial bundle
 const ChatChart = dynamic(() => import("./chat-chart").then((m) => m.ChatChart), {
@@ -73,16 +75,17 @@ function StreamingLoader({
 export const ChatMessage = memo(function ChatMessage({
   message,
 }: ChatMessageProps) {
-  const queryClient = useQueryClient();
-  const { userId } = useUserId();
   const isUser = message.role === "user";
   const [chartVisible, setChartVisible] = useState(false);
-  const [pinId, setPinId] = useState<string | null>(null);
-  const [isPinning, setIsPinning] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
 
   const hasChart = message.visualSpec && message.visualSpec && Object.keys(message.visualSpec).length > 0;
-  
+
+  /* Pin / Unpin — hidden until pins API is available in Insmed
+  const queryClient = useQueryClient();
+  const { userId } = useUserId();
+  const [pinId, setPinId] = useState<string | null>(null);
+  const [isPinning, setIsPinning] = useState(false);
 
   const handlePin = useCallback(async () => {
     if (!message.visualSpec || isPinning) return;
@@ -124,6 +127,7 @@ export const ChatMessage = memo(function ChatMessage({
       setIsPinning(false);
     }
   }, [pinId, isPinning, queryClient, userId]);
+  */
 
   // Show streaming loader if message is streaming
   if (message.isStreaming) {
@@ -215,6 +219,7 @@ export const ChatMessage = memo(function ChatMessage({
                     >
                       <div className="relative group/chart">
                         <ChatChart visualSpec={message.visualSpec!} />
+                        {/* Pin / Unpin button — hidden until pins API is available in Insmed
                         <button
                           type="button"
                           onClick={pinId ? handleUnpin : handlePin}
@@ -236,6 +241,7 @@ export const ChatMessage = memo(function ChatMessage({
                               ? "Unpin"
                               : "Pin"}
                         </button>
+                        */}
                       </div>
                     </motion.div>
                   )}

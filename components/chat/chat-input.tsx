@@ -10,7 +10,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchFilters } from "@/lib/api/filtersApi";
+// import { fetchFilters } from "@/lib/api/filtersApi";
 import {
   Building2,
   Users,
@@ -109,6 +109,13 @@ export function ChatInput({
     resizeTextarea();
   }, [inputValue, resizeTextarea]);
 
+  const fetchMentionResults = useCallback(async (_q: string) => {
+    // @-mention filters disabled — not part of Insmed API yet
+    setMentionLoading(false);
+    setMentionResults([]);
+  }, []);
+
+  /* Original @-mention filter lookup — re-enable when filter API is available
   const fetchMentionResults = useCallback(async (q: string) => {
     setMentionLoading(true);
     try {
@@ -136,6 +143,7 @@ export function ChatInput({
       setMentionLoading(false);
     }
   }, []);
+  */
 
   useEffect(() => {
     if (!mentionOpen) return;
