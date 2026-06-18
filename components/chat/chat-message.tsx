@@ -10,7 +10,7 @@ import { Eye, EyeOff, FileText, ArrowRight } from "lucide-react";
 // import { Pin, PinOff, Eye, EyeOff, FileText, ArrowRight } from "lucide-react";
 // import { useQueryClient } from "@tanstack/react-query";
 // import { toast } from "sonner";
-import type { Message } from "@/stores/chat-store";
+import { shouldAttachVisualSpec, type Message } from "@/stores/chat-store";
 import dynamic from "next/dynamic";
 import { markdownComponents } from "./markdown-components";
 // import { useUserId } from "@/hooks/use-user-id";
@@ -79,7 +79,7 @@ export const ChatMessage = memo(function ChatMessage({
   const [chartVisible, setChartVisible] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const hasChart = message.visualSpec && message.visualSpec && Object.keys(message.visualSpec).length > 0;
+  const hasChart = shouldAttachVisualSpec(message.visualSpec);
 
   /* Pin / Unpin — hidden until pins API is available in Insmed
   const queryClient = useQueryClient();

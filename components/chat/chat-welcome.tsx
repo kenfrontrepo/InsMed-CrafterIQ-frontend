@@ -4,17 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChatStore, type ChatContext } from "@/stores/chat-store";
 
-const CATEGORY_TAGS = {
-  portfolio: { label: "Portfolio level", color: "#378ADD" },
-  pipeline: { label: "Pipeline / Idea management", color: "#BA7517" },
-  budget: { label: "Budget & prioritization", color: "#1D9E75" },
-  execution: { label: "Execution & delivery", color: "#D85A30" },
-} as const;
-
-type CategoryKey = keyof typeof CATEGORY_TAGS;
-
 interface DynCard {
-  tag: CategoryKey;
   meta: string;
   question: string;
   highlights: string[];
@@ -22,130 +12,31 @@ interface DynCard {
 }
 
 const SAMPLE_QUESTIONS: DynCard[] = [
-  // Portfolio level
   {
-    tag: "portfolio",
     meta: "Status breakdown",
     question: "How many projects are in progress vs. closed vs. on hold?",
     highlights: ["in progress", "closed", "on hold"],
     prompt: "How many projects are currently in progress vs. closed vs. on hold?",
   },
   {
-    tag: "portfolio",
     meta: "Project types",
     question: "What's the distribution of project types (AI/Complex/Simple) by business unit?",
     highlights: ["project types", "business unit"],
     prompt: "What's the distribution of project types (AI/Complex/Simple) by business unit?",
   },
   {
-    tag: "portfolio",
     meta: "Off-track risk",
     question: "Which business units have the most off-track projects?",
-    highlights: ["off-track", "business units"],
+    highlights: ["business units", "off-track"],
     prompt: "Which business units have the most off-track projects?",
   },
   {
-    tag: "portfolio",
     meta: "Growth over time",
     question: "How has the portfolio grown over time by created date?",
-    highlights: ["portfolio", "grown over time"],
+    highlights: ["portfolio grown over time"],
     prompt: "How has the portfolio grown over time (by Created on)?",
   },
-  // Pipeline / Idea management
-  {
-    tag: "pipeline",
-    meta: "Execute approved gaps",
-    question: "Which Execute Approved ideas still don't have a corresponding project?",
-    highlights: ["Execute Approved", "project"],
-    prompt: 'Which "Execute Approved" ideas still don\'t have a corresponding project?',
-  },
-  {
-    tag: "pipeline",
-    meta: "Conversion rate",
-    question: "What's the idea-to-project conversion rate by business unit?",
-    highlights: ["conversion rate", "business unit"],
-    prompt: "What's the idea-to-project conversion rate by business unit?",
-  },
-  {
-    tag: "pipeline",
-    meta: "Stale drafts",
-    question: "How many ideas have been sitting in Draft for more than 6 months?",
-    highlights: ["Draft", "6 months"],
-    prompt: "How many ideas have been sitting in Draft for more than 6 months?",
-  },
-  {
-    tag: "pipeline",
-    meta: "Budget requested vs approved",
-    question: "What's the total budget requested vs. approved to execute?",
-    highlights: ["budget requested", "approved"],
-    prompt: "What's the total budget requested vs. how much has been approved to execute?",
-  },
-  // Budget & prioritization
-  {
-    tag: "budget",
-    meta: "Budget commitments",
-    question: "Which business units hold the largest budget commitments?",
-    highlights: ["budget commitments", "business units"],
-    prompt: "Which business units hold the largest budget commitments?",
-  },
-  {
-    tag: "budget",
-    meta: "T-shirt size",
-    question: "How does budget correlate with T-shirt size?",
-    highlights: ["budget", "T-shirt size"],
-    prompt: "How does budget correlate with T-shirt size?",
-  },
-  {
-    tag: "budget",
-    meta: "Unapproved large ideas",
-    question: "Are any Large/XL ideas still unapproved?",
-    highlights: ["Large/XL", "unapproved"],
-    prompt: "Are any Large/XL ideas still unapproved?",
-  },
-  // Execution & delivery
-  {
-    tag: "execution",
-    meta: "Progress",
-    question: "What is the average % complete across in-progress projects?",
-    highlights: ["% complete", "in-progress"],
-    prompt: "What is the average % complete across in-progress projects?",
-  },
-  {
-    tag: "execution",
-    meta: "PM workload",
-    question: "Which PMs manage the most projects, and what's their health ratio?",
-    highlights: ["PMs", "health ratio"],
-    prompt: "Which PMs are managing the most projects, and what's their health ratio?",
-  },
-  {
-    tag: "execution",
-    meta: "Highest risk",
-    question: "Which projects are Off track and trending Down?",
-    highlights: ["Off track", "trending Down"],
-    prompt: "Which projects are Off track and trending Down (highest risk)?",
-  },
-  {
-    tag: "execution",
-    meta: "Extended hold",
-    question: "How many projects have been on hold for extended periods?",
-    highlights: ["on hold", "extended"],
-    prompt: "How many projects have been on hold for extended periods?",
-  },
 ];
-
-const INTENT_CHIPS = (
-  [
-    ["portfolio", CATEGORY_TAGS.portfolio.label, CATEGORY_TAGS.portfolio.color],
-    ["pipeline", CATEGORY_TAGS.pipeline.label, CATEGORY_TAGS.pipeline.color],
-    ["budget", CATEGORY_TAGS.budget.label, CATEGORY_TAGS.budget.color],
-    ["execution", CATEGORY_TAGS.execution.label, CATEGORY_TAGS.execution.color],
-  ] as const
-).map(([key, label, color]) => ({
-  key: key as CategoryKey,
-  label,
-  color,
-  prompt: SAMPLE_QUESTIONS.find((q) => q.tag === key)?.prompt ?? "",
-}));
 
 const CARDS_BY_CONTEXT: Record<ChatContext, DynCard[]> = {
   sales: SAMPLE_QUESTIONS,
@@ -331,22 +222,6 @@ export function ChatWelcome({ onSuggestionSelect }: ChatWelcomeProps) {
     [selectedContext]
   );
 
-  const groupedCards = useMemo(() => {
-    const groups: { tag: CategoryKey; label: string; color: string; items: DynCard[] }[] = [];
-    for (const key of Object.keys(CATEGORY_TAGS) as CategoryKey[]) {
-      const items = cards.filter((card) => card.tag === key);
-      if (items.length > 0) {
-        groups.push({
-          tag: key,
-          label: CATEGORY_TAGS[key].label,
-          color: CATEGORY_TAGS[key].color,
-          items,
-        });
-      }
-    }
-    return groups;
-  }, [cards]);
-
   const handleChipClick = useCallback(
     (prompt: string) => {
       onSuggestionSelect(prompt);
@@ -405,64 +280,26 @@ export function ChatWelcome({ onSuggestionSelect }: ChatWelcomeProps) {
           — {activeDataset.description}
         </p>
 
-        {/* Intent chips — category tags */}
+        {/* Sample questions */}
         <div style={{ animationDelay: "0.16s", animation: "fadeUp 0.3s ease both" }}>
-          <div className="text-[10px] font-medium tracking-[0.07em] uppercase text-text-tertiary mb-2.5">
-            Browse by topic
-          </div>
-          <div className="flex flex-wrap gap-[7px] mb-8">
-            {INTENT_CHIPS.map((chip) => (
-              <button
-                key={chip.key}
-                onClick={() => handleChipClick(chip.prompt)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 border border-border-mid rounded-full bg-card text-xs text-text-secondary cursor-pointer hover:border-border-strong hover:text-text-primary transition-all active:scale-[0.97] select-none"
-              >
-                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: chip.color }} />
-                {chip.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Sample questions by category */}
-        <div style={{ animationDelay: "0.20s", animation: "fadeUp 0.3s ease both" }}>
-          <div className="text-[10px] font-medium tracking-[0.07em] uppercase text-text-tertiary mb-2.5">
-            Sample questions
-          </div>
-          <div className="space-y-6 mb-8">
-            {groupedCards.map((group) => (
-              <div key={group.tag}>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: group.color }} />
-                  <span className="text-[11px] font-medium text-text-secondary">{group.label}</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {group.items.map((card) => (
-                    <button
-                      key={`${group.tag}-${card.meta}`}
-                      onClick={() => handleChipClick(card.prompt)}
-                      className="bg-card border border-border-subtle rounded-[14px] px-4 py-3.5 cursor-pointer text-left hover:border-border-strong hover:bg-hover transition-all active:scale-[0.985]"
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span
-                          className="text-[9px] font-medium tracking-wide uppercase px-1.5 py-px rounded"
-                          style={{
-                            color: group.color,
-                            backgroundColor: `${group.color}18`,
-                          }}
-                        >
-                          {group.label}
-                        </span>
-                        <span className="text-[10px] text-text-tertiary tracking-wide">{card.meta}</span>
-                      </div>
-                      <div
-                        className="text-[13px] text-text-primary leading-snug"
-                        dangerouslySetInnerHTML={{ __html: highlightText(card.question, card.highlights) }}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-8">
+            {cards.map((card) => (
+                <button
+                  key={card.meta}
+                  type="button"
+                  onClick={() => handleChipClick(card.prompt)}
+                  className="bg-card border border-border-subtle rounded-[14px] px-4 py-3.5 cursor-pointer text-left hover:border-border-strong hover:bg-hover transition-all active:scale-[0.985]"
+                >
+                  <div className="text-[10px] text-text-tertiary tracking-wide mb-1.5">
+                    {card.meta}
+                  </div>
+                  <div
+                    className="text-[13px] text-text-primary leading-snug"
+                    dangerouslySetInnerHTML={{
+                      __html: highlightText(card.question, card.highlights),
+                    }}
+                  />
+                </button>
             ))}
           </div>
         </div>

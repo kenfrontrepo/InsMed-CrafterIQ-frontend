@@ -44,6 +44,12 @@ export interface VisualSpec {
   }[];
 }
 
+export function shouldAttachVisualSpec(spec?: VisualSpec): boolean {
+  if (!spec) return false;
+  if ((spec as unknown as { type?: string }).type === "report") return true;
+  return spec.is_visual !== false && Boolean(spec.chart_type);
+}
+
 export interface StreamingEvent {
   event: string;
   message: string;
@@ -198,7 +204,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           content: m.content,
           timestamp: new Date(m.timestamp),
           context: "sales",
-          visualSpec: m.visual_spec
+          visualSpec: shouldAttachVisualSpec(m.visual_spec as unknown as VisualSpec)
             ? (m.visual_spec as unknown as VisualSpec)
             : undefined,
           followUpQuestions: m.follow_up_questions,
@@ -387,7 +393,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           ? {
               ...msg,
               content: result.sysoutput,
-              visualSpec: result.visual_spec,
+              visualSpec: shouldAttachVisualSpec(result.visual_spec)
+                ? result.visual_spec
+                : undefined,
               followUpQuestions: result.follow_up_questions,
               conversationId: result.conversation_id,
               serverMessageId: result.message_id,
