@@ -19,21 +19,13 @@ import {
   fetchChatHistory as apiFetchChatHistory,
   updateChatTitle,
   deleteChatConversation,
+  type InsmedConversation,
+  type InsmedChatHistoryResponse,
 } from "@/lib/api/chatApi";
 
-interface ApiConversation {
-  id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ChatHistoryResponse {
-  conversations: ApiConversation[];
-}
-
-async function fetchChatHistory(userId: string): Promise<ApiConversation[]> {
-  const data: ChatHistoryResponse = await apiFetchChatHistory(userId);
+async function fetchChatHistory(userId: string): Promise<InsmedConversation[]> {
+  const data: InsmedChatHistoryResponse = await apiFetchChatHistory(userId);
+  if (!data.status) return [];
   return data.conversations ?? [];
 }
 
@@ -74,7 +66,7 @@ function EditChatDialog({
   onClose,
   onSave,
 }: {
-  conversation: ApiConversation | null;
+  conversation: InsmedConversation | null;
   isOpen: boolean;
   isSaving: boolean;
   onClose: () => void;
@@ -153,7 +145,7 @@ function DeleteChatDialog({
   onClose,
   onConfirm,
 }: {
-  conversation: ApiConversation | null;
+  conversation: InsmedConversation | null;
   isOpen: boolean;
   isDeleting: boolean;
   onClose: () => void;
@@ -220,17 +212,17 @@ export function ChatHistory() {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [conversationToEdit, setConversationToEdit] = useState<ApiConversation | null>(null);
+  const [conversationToEdit, setConversationToEdit] = useState<InsmedConversation | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [conversationToDelete, setConversationToDelete] = useState<ApiConversation | null>(null);
+  const [conversationToDelete, setConversationToDelete] = useState<InsmedConversation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Group by date
   const grouped = useMemo(() => {
-    const groups: Record<string, ApiConversation[]> = {};
+    const groups: Record<string, InsmedConversation[]> = {};
     for (const conv of conversations) {
       const group = getDateGroup(conv.updated_at);
       if (!groups[group]) groups[group] = [];
@@ -239,7 +231,7 @@ export function ChatHistory() {
     return groups;
   }, [conversations]);
 
-  const handleSelect = (conv: ApiConversation) => {
+  const handleSelect = (conv: InsmedConversation) => {
     loadConversationFromHistory(conv.id, conv.title, userId!);
     if (!pathname.startsWith("/chat")) {
       router.push("/chat");
@@ -247,7 +239,7 @@ export function ChatHistory() {
   };
 
   // Handle edit click
-  const handleEditClick = useCallback((conv: ApiConversation) => {
+  const handleEditClick = useCallback((conv: InsmedConversation) => {
     setConversationToEdit(conv);
     setEditDialogOpen(true);
   }, []);
@@ -272,7 +264,7 @@ export function ChatHistory() {
   );
 
   // Handle delete click
-  const handleDeleteClick = useCallback((conv: ApiConversation) => {
+  const handleDeleteClick = useCallback((conv: InsmedConversation) => {
     setConversationToDelete(conv);
     setDeleteDialogOpen(true);
   }, []);

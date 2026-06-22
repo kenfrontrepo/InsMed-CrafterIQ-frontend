@@ -20,16 +20,41 @@ export interface InsmedConversationMessage {
   role: string;
   content: string;
   timestamp: string;
-  visual_spec?: Record<string, unknown>;
+  visual_spec?: Record<string, unknown> | null;
   follow_up_questions?: string[];
 }
 
+/** GET /insmed/chat-history/{conversation_id} */
 export interface InsmedConversationDetailResponse {
+  status: boolean;
+  messages: InsmedConversationMessage[];
+  total: number;
+}
+
+export interface InsmedRenameConversationResponse {
+  status: boolean;
   id: string;
   title: string;
   created_at: string;
-  updated_at?: string;
-  messages?: InsmedConversationMessage[];
+  updated_at: string;
+}
+
+export interface InsmedDeleteConversationResponse {
+  status: boolean;
+  message: string;
+}
+
+export interface InsmedRegenerateTitleResponse {
+  status: boolean;
+  success: boolean;
+  title: string;
+  conversation_id: string;
+}
+
+export interface AskCrafterStreamRequest {
+  question: string;
+  conversation_id?: string | null;
+  user_id?: string | null;
 }
 
 function userHeaders(userId: string) {
@@ -41,6 +66,12 @@ export async function streamChat(
   question: string,
   conversationId: string | null
 ): Promise<Response> {
+  const body: AskCrafterStreamRequest = {
+    question,
+    user_id: userId,
+    conversation_id: conversationId || null,
+  };
+
   const res = await fetch(`${API_BASE_URL}/insmed/ask-stream`, {
     method: "POST",
     headers: {
@@ -48,11 +79,7 @@ export async function streamChat(
       Accept: "text/event-stream",
       ...userHeaders(userId),
     },
-    body: JSON.stringify({
-      question,
-      user_id: userId,
-      conversation_id: conversationId || null,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -64,7 +91,7 @@ export async function streamChat(
 
 export async function fetchChatHistory(
   userId: string,
-  limit = 50,
+  limit = 20,
   offset = 0
 ): Promise<InsmedChatHistoryResponse> {
   const res = await api.get<InsmedChatHistoryResponse>("/insmed/chat-history", {
@@ -88,10 +115,11 @@ export async function fetchConversationDetail(
 export async function deleteChatConversation(
   conversationId: string,
   userId: string
-) {
-  const res = await api.delete(`/insmed/chat-history/${conversationId}`, {
-    headers: userHeaders(userId),
-  });
+): Promise<InsmedDeleteConversationResponse> {
+  const res = await api.delete<InsmedDeleteConversationResponse>(
+    `/insmed/chat-history/${conversationId}`,
+    { headers: userHeaders(userId) }
+  );
   return res.data;
 }
 
@@ -99,8 +127,8 @@ export async function updateChatTitle(
   conversationId: string,
   userId: string,
   title: string
-) {
-  const res = await api.put(
+): Promise<InsmedRenameConversationResponse> {
+  const res = await api.put<InsmedRenameConversationResponse>(
     `/insmed/chat-history/${conversationId}/rename`,
     { title },
     { headers: userHeaders(userId) }
@@ -111,10 +139,10 @@ export async function updateChatTitle(
 export async function regenerateChatTitle(
   conversationId: string,
   userId: string
-) {
-  const res = await api.post(
+): Promise<InsmedRegenerateTitleResponse> {
+  const res = await api.post<InsmedRegenerateTitleResponse>(
     `/insmed/chat-history/${conversationId}/regenerate-title`,
-    null,
+    {},
     { headers: userHeaders(userId) }
   );
   return res.data;

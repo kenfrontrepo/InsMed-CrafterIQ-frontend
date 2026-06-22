@@ -21,6 +21,7 @@ export function getTypeConfig(responseType: PinItem["response_type"]): {
 } {
   switch (responseType) {
     case "chart":
+    case "table":
       return { icon: BarChart3, bgColor: "bg-blue-50", textColor: "text-blue-600" };
     case "alert":
       return { icon: Bell, bgColor: "bg-red-50", textColor: "text-red-600" };

@@ -24,12 +24,12 @@ import {
   Loader2,
   Check,
   Undo2,
-  Bell,
+  // Bell,
 } from "lucide-react";
 import { ChatChart } from "@/components/chat/chat-chart";
 import type { VisualSpec } from "@/stores/chat-store";
 import { RefinePopover } from "./refine-popover";
-import { AlertsPanel } from "./alerts-panel";
+// import { AlertsPanel } from "./alerts-panel";
 import { PinDetailsDialog } from "@/components/pins";
 import type { PinItem } from "@/components/pins/types";
 import {
@@ -118,21 +118,19 @@ function pinToVisualSpec(pin: Pin): VisualSpec {
 /** Minimal `PinItem` for `PinDetailsDialog` — API loads full markdown + visual by pin id */
 function boardPinToPinItemStub(p: Pin): PinItem {
   const responseType: PinItem["response_type"] =
-    p.chartType === "table" ? "note" : "chart";
+    p.chartType === "table" ? "table" : "chart";
   return {
     id: p.id,
     board_id: null,
-    boards: [],
     conversation_id: "",
-    message_id: "",
     response_type: responseType,
     title: p.title,
+    chart_type: p.chartType,
     is_refreshable: false,
-    last_refreshed_at: "",
+    last_refreshed_at: null,
     refresh_count: 0,
     created_at: p.createdAt ?? "",
     pin_tags: null,
-    schema_name: "",
   };
 }
 
@@ -180,7 +178,7 @@ export const PinCard = memo(function PinCard({
   const [showPinDetails, setShowPinDetails] = useState(false);
   const [previewSpec, setPreviewSpec] = useState<VisualSpec | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showAlerts, setShowAlerts] = useState(false);
+  // const [showAlerts, setShowAlerts] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const handleExport = useCallback(async () => {
@@ -223,7 +221,7 @@ export const PinCard = memo(function PinCard({
       }),
     onSuccess: (data) => {
       if (data.status && data.preview_spec) {
-        setPreviewSpec(data.preview_spec as VisualSpec);
+        setPreviewSpec(data.preview_spec as unknown as VisualSpec);
       }
     },
   });
@@ -310,6 +308,7 @@ export const PinCard = memo(function PinCard({
                   onSelect={handleRefineSelect}
                 />
               )}
+              {/* Alerts icon — disabled until Insmed alerts API is available
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -321,6 +320,7 @@ export const PinCard = memo(function PinCard({
               >
                 <Bell className="h-4 w-4" />
               </Button>
+              */}
             </div>
           )}
 
@@ -536,7 +536,7 @@ export const PinCard = memo(function PinCard({
           document.body
         )}
 
-      {/* Alerts Panel */}
+      {/* Alerts Panel — disabled until Insmed alerts API is available
       {boardId && userId && (
         <AlertsPanel
           open={showAlerts}
@@ -547,6 +547,7 @@ export const PinCard = memo(function PinCard({
           pinTitle={pin.title}
         />
       )}
+      */}
     </>
   );
 });

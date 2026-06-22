@@ -1,54 +1,56 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useChatStore } from "@/stores/chat-store";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { ChatHistory } from "@/components/chat-history";
-// import Link from "next/link";
-// import { useState, useRef } from "react";
-// import { useQuery, useQueryClient } from "@tanstack/react-query";
-// import { useUserId } from "@/hooks/use-user-id";
-// import { fetchBoards, type Board } from "@/components/boards/types";
-// import { CreateBoardModal } from "@/components/boards/board-modals";
+import { useUserId } from "@/hooks/use-user-id";
+import { fetchBoards, type Board } from "@/components/boards/types";
+import { CreateBoardModal } from "@/components/boards/board-modals";
 
 export function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
-  // const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
   const createNewChat = useChatStore((state) => state.createNewChat);
   const setOpen = useSidebarStore((s) => s.setOpen);
-  // const { userId } = useUserId();
-  // const [createBoardOpen, setCreateBoardOpen] = useState(false);
-  // const [chatHeight, setChatHeight] = useState(50);
-  // const dragging = useRef(false);
-  // const containerRef = useRef<HTMLDivElement>(null);
+  const { userId } = useUserId();
+  const [createBoardOpen, setCreateBoardOpen] = useState(false);
+  const [chatHeight, setChatHeight] = useState(50);
+  const dragging = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const closeOnMobile = useCallback(() => {
     if (window.innerWidth < 768) setOpen(false);
   }, [setOpen]);
 
-  // const handlePointerDown = useCallback((e: React.PointerEvent) => {
-  //   e.preventDefault();
-  //   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  //   dragging.current = true;
-  //
-  //   const onPointerMove = (ev: PointerEvent) => {
-  //     if (!dragging.current || !containerRef.current) return;
-  //     const rect = containerRef.current.getBoundingClientRect();
-  //     const pct = Math.min(Math.max(((ev.clientY - rect.top) / rect.height) * 100, 20), 80);
-  //     setChatHeight(pct);
-  //   };
-  //
-  //   const onPointerUp = () => {
-  //     dragging.current = false;
-  //     document.removeEventListener("pointermove", onPointerMove);
-  //     document.removeEventListener("pointerup", onPointerUp);
-  //   };
-  //
-  //   document.addEventListener("pointermove", onPointerMove);
-  //   document.addEventListener("pointerup", onPointerUp);
-  // }, []);
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragging.current = true;
+
+    const onPointerMove = (ev: PointerEvent) => {
+      if (!dragging.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const pct = Math.min(
+        Math.max(((ev.clientY - rect.top) / rect.height) * 100, 20),
+        80
+      );
+      setChatHeight(pct);
+    };
+
+    const onPointerUp = () => {
+      dragging.current = false;
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+    };
+
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+  }, []);
 
   const handleNewChat = useCallback(() => {
     createNewChat();
@@ -58,24 +60,24 @@ export function SidebarNav() {
     closeOnMobile();
   }, [createNewChat, pathname, router, closeOnMobile]);
 
-  // const handleCreateBoard = useCallback(() => {
-  //   const onBoardsList = pathname === "/Boards" || pathname === "/Boards/";
-  //   if (!onBoardsList) {
-  //     router.push("/Boards");
-  //   }
-  //   setCreateBoardOpen(true);
-  // }, [pathname, router]);
-  //
-  // const handleCreateBoardSuccess = useCallback(() => {
-  //   queryClient.invalidateQueries({ queryKey: ["boards", userId] });
-  // }, [queryClient, userId]);
-  //
-  // const { data: boards = [] } = useQuery({
-  //   queryKey: ["boards", userId],
-  //   queryFn: () => fetchBoards(userId!),
-  //   enabled: !!userId,
-  //   staleTime: 60_000,
-  // });
+  const handleCreateBoard = useCallback(() => {
+    const onBoardsList = pathname === "/Boards" || pathname === "/Boards/";
+    if (!onBoardsList) {
+      router.push("/Boards");
+    }
+    setCreateBoardOpen(true);
+  }, [pathname, router]);
+
+  const handleCreateBoardSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["boards", userId] });
+  }, [queryClient, userId]);
+
+  const { data: boards = [] } = useQuery({
+    queryKey: ["boards", userId],
+    queryFn: () => fetchBoards(userId!),
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
 
   return (
     <div className="bg-card border-r border-border-subtle flex flex-col overflow-hidden h-full">
@@ -92,16 +94,11 @@ export function SidebarNav() {
         </button>
       </div>
 
-      {/* Chat history section */}
-      <div className="flex-1 flex flex-col min-h-0 px-3.5 pb-2">
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <ChatHistory />
-        </div>
-      </div>
-
-      {/* Boards section hidden
       <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
-        <div className="flex flex-col min-h-0 px-3.5 pb-1" style={{ height: `${chatHeight}%` }}>
+        <div
+          className="flex flex-col min-h-0 px-3.5 pb-1"
+          style={{ height: `${chatHeight}%` }}
+        >
           <div className="flex-1 min-h-0 overflow-hidden">
             <ChatHistory />
           </div>
@@ -114,7 +111,10 @@ export function SidebarNav() {
           <div className="w-8 h-[3px] rounded-full bg-border-mid group-hover:bg-text-tertiary transition-colors" />
         </div>
 
-        <div className="flex flex-col min-h-0 px-3.5 pt-1 pb-2" style={{ height: `${100 - chatHeight}%` }}>
+        <div
+          className="flex flex-col min-h-0 px-3.5 pt-1 pb-2"
+          style={{ height: `${100 - chatHeight}%` }}
+        >
           <div className="flex items-center justify-between px-1 mb-2 shrink-0">
             <span className="text-[10px] font-medium tracking-[0.07em] uppercase text-text-tertiary">
               Boards
@@ -174,7 +174,6 @@ export function SidebarNav() {
         onClose={() => setCreateBoardOpen(false)}
         onSuccess={handleCreateBoardSuccess}
       />
-      */}
     </div>
   );
 }

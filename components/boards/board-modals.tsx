@@ -12,6 +12,7 @@ import {
   createBoard as apiCreateBoard,
   updateBoard as apiUpdateBoard,
   deleteBoard as apiDeleteBoard,
+  type CreateBoardResponse,
 } from "@/lib/api/boardsApi";
 import { getApiErrorMessage } from "@/lib/api/axios";
 
@@ -75,19 +76,18 @@ export function CreateBoardModal({
     if (!name.trim()) return;
     setIsLoading(true);
     try {
-      const response = await apiCreateBoard(
+      const response: CreateBoardResponse = await apiCreateBoard(
         userId,
         name.trim(),
         description.trim(),
-        tags.trim(),
-        "sales"
+        tags.trim()
       );
       if (response?.status === false) {
-        toast.error(response.error || "Failed to create board");
+        toast.error("Failed to create board");
         return;
       }
-      const boardId: string = response?.board?.id ?? response?.board_id ?? response?.id ?? "";
-      const boardName: string = response?.board?.name ?? name.trim();
+      const boardId = response.board.id;
+      const boardName = response.board.name;
       toast.success(response?.message || `Board "${boardName}" created`);
       reset();
       onClose();

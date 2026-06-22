@@ -1,12 +1,10 @@
 export interface Board {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   created_at: string;
-  filter_status: string;
   pin_count: number;
   board_tags: string | null;
-  schema_name?: string;
 }
 
 export interface BoardsApiResponse {

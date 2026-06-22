@@ -58,7 +58,7 @@ export function ShareDialog({ pin, userId, onClose }: ShareDialogProps) {
     enabled: !!userId,
   });
 
-  const assignedBoardIds = new Set(pin.boards.map((b) => b.board_id));
+  const assignedBoardIds = new Set(pin.board_id ? [pin.board_id] : []);
   const availableBoards = boards.filter((b) => !assignedBoardIds.has(b.id));
 
   const assignMutation = useMutation({
@@ -99,21 +99,13 @@ export function ShareDialog({ pin, userId, onClose }: ShareDialogProps) {
           {pin.title}
         </p>
 
-        {/* Already assigned boards */}
-        {pin.boards.length > 0 && (
+        {pin.board_id && (
           <div className="mb-4">
             <p className="text-xs text-gray-500 mb-2">Already on:</p>
-            <div className="flex flex-wrap gap-1.5">
-              {pin.boards.map((b) => (
-                <span
-                  key={b.board_id}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-[#e8f0fe] text-primary rounded-full"
-                >
-                  <LayoutGrid className="h-3 w-3" />
-                  {b.board_name}
-                </span>
-              ))}
-            </div>
+            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-[#e8f0fe] text-primary rounded-full">
+              <LayoutGrid className="h-3 w-3" />
+              {boards.find((b) => b.id === pin.board_id)?.name || "Board"}
+            </span>
           </div>
         )}
 

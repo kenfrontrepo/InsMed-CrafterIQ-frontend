@@ -15,41 +15,42 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, RefreshCw, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  fetchBoardSummary,
+  fetchSummaryOptions,
+  type BoardSummaryResponse,
+} from "@/lib/api/boardsApi";
 
-// ── Option configs ──────────────────────────────────────────
-const TONE_OPTIONS = [
+const DEFAULT_TONE_OPTIONS = [
   { value: "executive", label: "Executive" },
+  { value: "strategic", label: "Strategic" },
   { value: "analytical", label: "Analytical" },
   { value: "casual", label: "Casual" },
+  { value: "anomaly_focused", label: "Anomaly Focused" },
 ] as const;
 
-const DETAIL_OPTIONS = [
+const DEFAULT_DETAIL_OPTIONS = [
   { value: "short", label: "Short" },
-  { value: "medium", label: "Medium" },
   { value: "detailed", label: "Detailed" },
+  { value: "comprehensive", label: "Comprehensive" },
 ] as const;
 
-const STYLE_OPTIONS = [
+const DEFAULT_STYLE_OPTIONS = [
   { value: "concise", label: "Concise" },
   { value: "narrative", label: "Narrative" },
   { value: "bullet_points", label: "Bullet Points" },
+  { value: "numbered", label: "Numbered" },
 ] as const;
 
-type Tone = (typeof TONE_OPTIONS)[number]["value"];
-type DetailLevel = (typeof DETAIL_OPTIONS)[number]["value"];
-type Style = (typeof STYLE_OPTIONS)[number]["value"];
+type Tone = (typeof DEFAULT_TONE_OPTIONS)[number]["value"];
+type DetailLevel = (typeof DEFAULT_DETAIL_OPTIONS)[number]["value"];
+type Style = (typeof DEFAULT_STYLE_OPTIONS)[number]["value"];
 
-// ── Fetch function ──────────────────────────────────────────
-import { fetchBoardSummary } from "@/lib/api/boardsApi";
-
-interface SummaryResponse {
-  status: boolean;
-  board_id: string;
-  board_name: string;
-  summary: string;
-  tone: string;
-  detail_level: string;
-  style: string;
+function labelForValue(
+  options: readonly { value: string; label: string }[],
+  value: string
+) {
+  return options.find((o) => o.value === value)?.label ?? value;
 }
 
 async function fetchSummary(
@@ -59,7 +60,7 @@ async function fetchSummary(
   detail_level: DetailLevel,
   style: Style,
   force_regenerate: boolean
-): Promise<SummaryResponse> {
+): Promise<BoardSummaryResponse> {
   return fetchBoardSummary(boardId, userId, {
     tone,
     detail_level,
@@ -68,7 +69,6 @@ async function fetchSummary(
   });
 }
 
-// ── Component ───────────────────────────────────────────────
 interface SummarySectionProps {
   boardId: string;
   userId: string;
@@ -80,11 +80,34 @@ export const SummarySection = memo(function SummarySection({
   userId,
   isWriteMode = false,
 }: SummarySectionProps) {
+  const { data: summaryOptions } = useQuery({
+    queryKey: ["board-summary-options"],
+    queryFn: fetchSummaryOptions,
+    staleTime: 5 * 60_000,
+  });
+
+  const toneOptions =
+    summaryOptions?.tones?.map((value) => ({
+      value,
+      label: labelForValue(DEFAULT_TONE_OPTIONS, value),
+    })) ?? DEFAULT_TONE_OPTIONS;
+
+  const detailOptions =
+    summaryOptions?.detail_levels?.map((value) => ({
+      value,
+      label: labelForValue(DEFAULT_DETAIL_OPTIONS, value),
+    })) ?? DEFAULT_DETAIL_OPTIONS;
+
+  const styleOptions =
+    summaryOptions?.styles?.map((value) => ({
+      value,
+      label: labelForValue(DEFAULT_STYLE_OPTIONS, value),
+    })) ?? DEFAULT_STYLE_OPTIONS;
+
   const [tone, setTone] = useState<Tone>("executive");
   const [detailLevel, setDetailLevel] = useState<DetailLevel>("short");
   const [style, setStyle] = useState<Style>("concise");
 
-  // Applied values — only sent to the API when user clicks Apply or on initial load
   const [appliedTone, setAppliedTone] = useState<Tone>("executive");
   const [appliedDetail, setAppliedDetail] = useState<DetailLevel>("short");
   const [appliedStyle, setAppliedStyle] = useState<Style>("concise");
@@ -103,7 +126,7 @@ export const SummarySection = memo(function SummarySection({
     queryKey: ["board-summary", boardId, appliedTone, appliedDetail, appliedStyle],
     queryFn: () =>
       fetchSummary(boardId, userId, appliedTone, appliedDetail, appliedStyle, false),
-    enabled: !!boardId,
+    enabled: !!boardId && !!userId,
     staleTime: 60_000,
   });
 
@@ -111,11 +134,9 @@ export const SummarySection = memo(function SummarySection({
     setAppliedTone(tone);
     setAppliedDetail(detailLevel);
     setAppliedStyle(style);
-    // React Query will auto-refetch because the queryKey changes
   }, [tone, detailLevel, style]);
 
   const handleRegenerate = useCallback(async () => {
-    // Force regenerate with current applied settings
     await fetchSummary(boardId, userId, appliedTone, appliedDetail, appliedStyle, true);
     refetch();
   }, [boardId, userId, appliedTone, appliedDetail, appliedStyle, refetch]);
@@ -127,11 +148,10 @@ export const SummarySection = memo(function SummarySection({
 
         {isWriteMode && (
         <div className="flex items-center gap-2">
-          {/* Tone Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="xs" className="h-7 gap-1 text-xs">
-                {TONE_OPTIONS.find((t) => t.value === tone)?.label}
+                {labelForValue(toneOptions, tone)}
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -143,7 +163,7 @@ export const SummarySection = memo(function SummarySection({
                 value={tone}
                 onValueChange={(v) => setTone(v as Tone)}
               >
-                {TONE_OPTIONS.map((option) => (
+                {toneOptions.map((option) => (
                   <DropdownMenuRadioItem key={option.value} value={option.value}>
                     {option.label}
                   </DropdownMenuRadioItem>
@@ -152,11 +172,10 @@ export const SummarySection = memo(function SummarySection({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Detail Level Dropdown */}
-          {/* <DropdownMenu>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="xs" className="h-7 gap-1 text-xs">
-                {DETAIL_OPTIONS.find((d) => d.value === detailLevel)?.label}
+                {labelForValue(detailOptions, detailLevel)}
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -168,20 +187,19 @@ export const SummarySection = memo(function SummarySection({
                 value={detailLevel}
                 onValueChange={(v) => setDetailLevel(v as DetailLevel)}
               >
-                {DETAIL_OPTIONS.map((option) => (
+                {detailOptions.map((option) => (
                   <DropdownMenuRadioItem key={option.value} value={option.value}>
                     {option.label}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
-          </DropdownMenu> */}
+          </DropdownMenu>
 
-          {/* Style Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="xs" className="h-7 gap-1 text-xs">
-                {STYLE_OPTIONS.find((s) => s.value === style)?.label}
+                {labelForValue(styleOptions, style)}
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -193,7 +211,7 @@ export const SummarySection = memo(function SummarySection({
                 value={style}
                 onValueChange={(v) => setStyle(v as Style)}
               >
-                {STYLE_OPTIONS.map((option) => (
+                {styleOptions.map((option) => (
                   <DropdownMenuRadioItem key={option.value} value={option.value}>
                     {option.label}
                   </DropdownMenuRadioItem>
@@ -202,7 +220,6 @@ export const SummarySection = memo(function SummarySection({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Apply Button — shown when dropdown values differ from applied */}
           {hasChanges && (
             <Button
               size="xs"
@@ -213,7 +230,6 @@ export const SummarySection = memo(function SummarySection({
             </Button>
           )}
 
-          {/* Regenerate Button */}
           <Button
             variant="ghost"
             size="icon-xs"
@@ -231,7 +247,6 @@ export const SummarySection = memo(function SummarySection({
         )}
       </div>
 
-      {/* Summary Content */}
       {isLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-4 w-full" />

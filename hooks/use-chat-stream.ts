@@ -116,14 +116,19 @@ export function useChatStream() {
               }
 
               if (event.event === "workflow_complete") {
-                const result = event.result
+                const baseResult = event.result
                   ? toStreamResult(event)
                   : latestResult ||
                     toStreamResult({
                       ...event,
                       sysoutput: "No response received.",
                     });
-                finalizeStreamingMessage(messageId, result);
+
+                finalizeStreamingMessage(messageId, {
+                  ...baseResult,
+                  conversation_id:
+                    event.conversation_id ?? baseResult.conversation_id ?? "",
+                });
                 continue;
               }
 

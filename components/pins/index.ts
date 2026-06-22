@@ -4,4 +4,4 @@ export { EditDialog } from "./edit-dialog";
 export { ShareDialog } from "./share-dialog";
 export { fetchPins, deletePin, updatePin } from "./api";
 export { getRelativeTime, getTypeConfig } from "./utils";
-export type { PinItem, PinBoard, PinsApiResponse } from "./types";
+export type { PinItem, PinsApiResponse } from "./types";

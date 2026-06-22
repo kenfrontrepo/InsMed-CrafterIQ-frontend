@@ -1,5 +1,3 @@
-import { api } from "./axios";
-
 export interface FilterDimension {
   success: boolean;
   dimension: string;
@@ -16,16 +14,17 @@ export interface FiltersResponse {
   dimension_count: number;
 }
 
-export async function fetchFilters(
-  search: string,
-  limit: number = 50
-): Promise<FiltersResponse> {
-  const params = new URLSearchParams({ search, limit: String(limit) });
-  const res = await api.get(`/crafteriq/clickhouse/filters?${params}`, {
-    headers: { accept: "application/json" },
-  });
-  return res.data;
-}
+// Legacy ClickHouse filter APIs — disabled until Insmed filter endpoints are available.
+// export async function fetchFilters(
+//   search: string,
+//   limit: number = 50
+// ): Promise<FiltersResponse> {
+//   const params = new URLSearchParams({ search, limit: String(limit) });
+//   const res = await api.get(`/crafteriq/clickhouse/filters?${params}`, {
+//     headers: { accept: "application/json" },
+//   });
+//   return res.data;
+// }
 
 /** Metadata for each filterable dimension (board filter UI) */
 export interface DimensionMeta {
@@ -40,12 +39,13 @@ export interface DimensionsListResponse {
   count: number;
 }
 
-export async function fetchDimensions(): Promise<DimensionsListResponse> {
-  const res = await api.get(`/crafteriq/clickhouse/dimensions`, {
-    headers: { accept: "application/json" },
-  });
-  return res.data;
-}
+// Legacy ClickHouse dimensions API — disabled per product request.
+// export async function fetchDimensions(): Promise<DimensionsListResponse> {
+//   const res = await api.get(`/crafteriq/clickhouse/dimensions`, {
+//     headers: { accept: "application/json" },
+//   });
+//   return res.data;
+// }
 
 /** Single-dimension filter values (e.g. /filters/brand?search=a&limit=10) */
 export interface SingleDimensionFiltersResponse {
@@ -58,17 +58,18 @@ export interface SingleDimensionFiltersResponse {
   total: number;
 }
 
-export async function fetchFiltersByDimension(
-  dimensionKey: string,
-  search: string,
-  limit: number = 15
-): Promise<SingleDimensionFiltersResponse> {
-  const params = new URLSearchParams({ search, limit: String(limit) });
-  const res = await api.get(
-    `/crafteriq/clickhouse/filters/${encodeURIComponent(dimensionKey)}?${params}`,
-    {
-      headers: { accept: "application/json" },
-    }
-  );
-  return res.data;
-}
+// Legacy ClickHouse per-dimension filter API — disabled until Insmed filter endpoints are available.
+// export async function fetchFiltersByDimension(
+//   dimensionKey: string,
+//   search: string,
+//   limit: number = 15
+// ): Promise<SingleDimensionFiltersResponse> {
+//   const params = new URLSearchParams({ search, limit: String(limit) });
+//   const res = await api.get(
+//     `/crafteriq/clickhouse/filters/${encodeURIComponent(dimensionKey)}?${params}`,
+//     {
+//       headers: { accept: "application/json" },
+//     }
+//   );
+//   return res.data;
+// }

@@ -189,28 +189,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const data = await fetchConversationDetail(conversationId, userId);
 
-      // Transform API messages to local Message type
-      const messages: Message[] = (data.messages ?? []).map(
-        (m: {
-          id: string;
-          role: string;
-          content: string;
-          timestamp: string;
-          visual_spec?: Record<string, unknown>;
-          follow_up_questions?: string[];
-        }) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          timestamp: new Date(m.timestamp),
-          context: "sales",
-          visualSpec: shouldAttachVisualSpec(m.visual_spec as unknown as VisualSpec)
+      if (!data.status) {
+        throw new Error("Failed to load conversation");
+      }
+
+      const messages: Message[] = (data.messages ?? []).map((m) => ({
+        id: m.id,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        timestamp: new Date(m.timestamp),
+        context: "sales",
+        visualSpec:
+          m.visual_spec &&
+          shouldAttachVisualSpec(m.visual_spec as unknown as VisualSpec)
             ? (m.visual_spec as unknown as VisualSpec)
             : undefined,
-          followUpQuestions: m.follow_up_questions,
-          conversationId,
-        })
-      );
+        followUpQuestions: m.follow_up_questions,
+        conversationId,
+        serverMessageId: m.role === "assistant" ? m.id : undefined,
+      }));
+
+      const firstTimestamp = messages[0]?.timestamp ?? new Date();
+      const lastTimestamp =
+        messages[messages.length - 1]?.timestamp ?? firstTimestamp;
 
       // Find last assistant message's follow-up questions
       const lastAssistant = [...messages]
@@ -220,10 +221,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const loadedChat: Chat = {
         id: generateId(),
-        title: data.title || title,
+        title,
         messages,
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(),
+        createdAt: firstTimestamp,
+        updatedAt: lastTimestamp,
         context: "sales",
         conversationId,
       };

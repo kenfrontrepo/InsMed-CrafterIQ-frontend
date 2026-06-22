@@ -17,30 +17,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
-import { fetchPins as apiFetchAllPins } from "@/lib/api/pinsApi";
-import { bulkAssignPins } from "@/lib/api/pinsApi";
-
-interface PinBoard {
-  board_id: string;
-  board_name: string;
-}
-
-interface PinItem {
-  id: string;
-  board_id: string | null;
-  boards: PinBoard[];
-  conversation_id: string;
-  message_id: string;
-  response_type: "note" | "chart" | "alert";
-  title: string;
-  is_refreshable: boolean;
-  last_refreshed_at: string;
-  refresh_count: number;
-  created_at: string;
-  pin_tags: string | null;
-  schema_name: string;
-  chart_type: string | null;
-}
+import { fetchPins as apiFetchAllPins, bulkAssignPins, type PinListItem } from "@/lib/api/pinsApi";
 
 interface AddPinsDialogProps {
   open: boolean;
@@ -65,7 +42,7 @@ function getRelativeTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-function getTypeIcon(responseType: PinItem["response_type"]) {
+function getTypeIcon(responseType: PinListItem["response_type"]) {
   switch (responseType) {
     case "chart":
       return { icon: BarChart3, bgColor: "bg-blue-50", textColor: "text-blue-500" };
@@ -86,7 +63,7 @@ export function AddPinsDialog({
   onClose,
   onSuccess,
 }: AddPinsDialogProps) {
-  const [allPins, setAllPins] = useState<PinItem[]>([]);
+  const [allPins, setAllPins] = useState<PinListItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isFetchingPins, setIsFetchingPins] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);

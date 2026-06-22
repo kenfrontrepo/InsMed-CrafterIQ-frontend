@@ -13,28 +13,28 @@ interface DynCard {
 
 const SAMPLE_QUESTIONS: DynCard[] = [
   {
-    meta: "Status breakdown",
-    question: "How many projects are in progress vs. closed vs. on hold?",
-    highlights: ["in progress", "closed", "on hold"],
-    prompt: "How many projects are currently in progress vs. closed vs. on hold?",
+    meta: "Risk / Health scan",
+    question: "Which business units have the most off-track or on-hold projects?",
+    highlights: ["business units", "off-track", "on-hold"],
+    prompt: "Which business units have the most off-track or on-hold projects?",
   },
   {
-    meta: "Project types",
-    question: "What's the distribution of project types (AI/Complex/Simple) by business unit?",
-    highlights: ["project types", "business unit"],
-    prompt: "What's the distribution of project types (AI/Complex/Simple) by business unit?",
+    meta: "Budget exposure",
+    question: "What is the total budget by business unit for all in-progress projects, and how does it compare to closed ones?",
+    highlights: ["total budget", "business unit", "in-progress", "closed"],
+    prompt: "What is the total budget by business unit for all in-progress projects, and how does it compare to closed ones?",
   },
   {
-    meta: "Off-track risk",
-    question: "Which business units have the most off-track projects?",
-    highlights: ["business units", "off-track"],
-    prompt: "Which business units have the most off-track projects?",
+    meta: "Pipeline conversion funnel",
+    question: "How many ideas by business unit have converted to projects versus still pending approval?",
+    highlights: ["ideas", "business unit", "converted", "pending approval"],
+    prompt: "How many ideas by business unit have converted to projects versus still pending approval?",
   },
   {
-    meta: "Growth over time",
-    question: "How has the portfolio grown over time by created date?",
-    highlights: ["portfolio grown over time"],
-    prompt: "How has the portfolio grown over time (by Created on)?",
+    meta: "Top projects by budget",
+    question: "Show me the top 5 projects by budget with their status and business unit",
+    highlights: ["top 5 projects", "budget", "status", "business unit"],
+    prompt: "Show me the top 5 projects by budget with their status and business unit",
   },
 ];
 

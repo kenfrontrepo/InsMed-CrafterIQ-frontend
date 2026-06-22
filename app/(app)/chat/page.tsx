@@ -8,8 +8,7 @@ import { ChatWelcome } from "@/components/chat/chat-welcome";
 import { ChatInput, type ChatInputHandle } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { FollowUpQuestions } from "@/components/chat/follow-up-questions";
-// Pins hidden — not in Insmed API yet; re-enable when pins endpoints are added
-// import { ChatPinsDrawer } from "@/components/chat/chat-pins-drawer";
+import { ChatPinsDrawer } from "@/components/chat/chat-pins-drawer";
 
 function HistoryLoadingSkeleton() {
   return (
@@ -159,9 +158,7 @@ function ChatPageContent() {
         )}
       </div>
 
-      {/* Pinned insights — hidden until pins API is available in Insmed
       <ChatPinsDrawer />
-      */}
     </div>
   );
 }

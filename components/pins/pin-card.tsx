@@ -36,6 +36,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { LayoutGrid } from "lucide-react";
+import { shouldAttachVisualSpec, type VisualSpec } from "@/stores/chat-store";
 import type { PinItem } from "./types";
 import { getRelativeTime, getTypeConfig } from "./utils";
 import { fetchPinDetails } from "@/lib/api/pinsApi";
@@ -120,19 +121,15 @@ export function PinDetailsDialog({
             <>
               {/* Visual spec chart */}
               {pin.visual_spec &&
-                pin.visual_spec.is_visual !== false &&
-                pin.visual_spec.chart_type && (
+                shouldAttachVisualSpec(pin.visual_spec as unknown as VisualSpec) && (
                   <div className="bg-gray-50 rounded-xl p-4">
-                    <ChatChart visualSpec={pin.visual_spec} bare height={350} />
+                    <ChatChart visualSpec={pin.visual_spec as unknown as VisualSpec} bare height={350} />
                   </div>
                 )}
 
-              {/* Content rendered as markdown */}
-              {pin.content && (
-                <div className="prose prose-sm max-w-none text-gray-700 prose-headings:text-gray-800 prose-strong:text-gray-800 prose-table:text-sm">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {pin.content}
-                  </ReactMarkdown>
+              {pin.user_question && (
+                <div className="prose prose-sm max-w-none text-gray-700">
+                  <p className="text-sm text-gray-600">{pin.user_question}</p>
                 </div>
               )}
             </>
@@ -238,9 +235,11 @@ export const PinCard = memo(function PinCard({
 
         <CardFooter className="pt-0 mt-auto">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-600 rounded-full">
-              {pin.schema_name}
-            </span>
+            {pin.chart_type && (
+              <span className="px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-600 rounded-full">
+                {pin.chart_type}
+              </span>
+            )}
 
             {tags.map((tag) => (
               <span
@@ -251,16 +250,11 @@ export const PinCard = memo(function PinCard({
               </span>
             ))}
 
-            {pin.boards.length > 0 ? (
-              pin.boards.map((board) => (
-                <span
-                  key={board.board_id}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-[#e8f0fe] text-primary rounded-full"
-                >
-                  <LayoutGrid className="h-3 w-3" />
-                  {board.board_name}
-                </span>
-              ))
+            {pin.board_id ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-[#e8f0fe] text-primary rounded-full">
+                <LayoutGrid className="h-3 w-3" />
+                On board
+              </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-gray-50 text-gray-400 rounded-full">
                 <Pin className="h-3 w-3" />

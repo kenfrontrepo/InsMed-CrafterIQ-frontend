@@ -1,25 +1,13 @@
-export interface PinBoard {
-  board_id: string;
-  board_name: string;
-}
+import type { PinListItem } from "@/lib/api/pinsApi";
 
-export interface PinItem {
-  id: string;
-  board_id: string | null;
-  boards: PinBoard[];
-  conversation_id: string;
-  message_id: string;
-  response_type: "note" | "chart" | "alert";
-  title: string;
-  is_refreshable: boolean;
-  last_refreshed_at: string;
-  refresh_count: number;
-  created_at: string;
-  pin_tags: string | null;
-  schema_name: string;
+export type PinResponseType = "note" | "chart" | "table" | "alert";
+
+export interface PinItem extends PinListItem {
+  response_type: PinResponseType;
 }
 
 export interface PinsApiResponse {
   status: boolean;
   pins: PinItem[];
+  total: number;
 }
