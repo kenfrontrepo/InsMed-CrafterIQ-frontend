@@ -10,39 +10,36 @@ import {
   type ChangeEvent,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-// import { fetchFilters } from "@/lib/api/filtersApi";
+import { fetchFilters } from "@/lib/api/filtersApi";
 import {
   Building2,
-  Users,
   User,
-  Calendar,
   Briefcase,
   Layers,
-  Globe,
-  Package,
-  Contact,
   Hash,
+  TrendingUp,
+  Activity,
+  Lightbulb,
+  Users,
+  PauseCircle,
+  Tag,
 } from "lucide-react";
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  brand: Building2,
-  rep_agency: Users,
-  sales_rep: Contact,
-  customer: User,
-  region: Globe,
-  product_category: Package,
-  market_segment: Briefcase,
-  year: Calendar,
-  order_status: Hash,
+  business_unit: Building2,
+  project_status: Hash,
+  health: Activity,
+  trend: TrendingUp,
+  project_manager: User,
+  project_type: Briefcase,
+  t_shirt_size: Tag,
+  idea_status: Lightbulb,
+  it_sponsor: Users,
+  on_hold: PauseCircle,
 };
 
 /** Dimensions omitted from @ mention suggestions */
-const EXCLUDED_DIMENSIONS = new Set([
-  "source",
-  "sales_region",
-  "channel",
-  "customer_type",
-]);
+const EXCLUDED_DIMENSIONS = new Set<string>([]);
 
 interface MentionResult {
   categoryKey: string;
@@ -109,25 +106,18 @@ export function ChatInput({
     resizeTextarea();
   }, [inputValue, resizeTextarea]);
 
-  const fetchMentionResults = useCallback(async (_q: string) => {
-    // @-mention filters disabled — not part of Insmed API yet
-    setMentionLoading(false);
-    setMentionResults([]);
-  }, []);
-
-  /* Original @-mention filter lookup — re-enable when filter API is available
   const fetchMentionResults = useCallback(async (q: string) => {
     setMentionLoading(true);
     try {
       const res = await fetchFilters(q.trim(), 50);
-      if (!res.success || !res.dimensions) {
+      if (!res.status || !res.dimensions) {
         setMentionResults([]);
         return;
       }
       const results: MentionResult[] = [];
       for (const dim of Object.values(res.dimensions)) {
         if (EXCLUDED_DIMENSIONS.has(dim.dimension)) continue;
-        if (!dim.success || !dim.values?.length) continue;
+        if (!dim.status || !dim.values?.length) continue;
         for (const v of dim.values) {
           results.push({
             categoryKey: dim.dimension,
@@ -143,7 +133,6 @@ export function ChatInput({
       setMentionLoading(false);
     }
   }, []);
-  */
 
   useEffect(() => {
     if (!mentionOpen) return;
