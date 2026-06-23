@@ -47,11 +47,13 @@ function PinnedCard({
           ))}
         </div>
       )} */}
+      {/* Alerts badge — disabled until Insmed alerts API is available
       {pin.response_type === "alert" && (
         <div className="mt-1.5 text-[11px] text-[#92580A] bg-[#FEF3E2] px-[7px] py-1 rounded">
           Alert · Refreshes on update
         </div>
       )}
+      */}
     </button>
   );
 }
@@ -97,13 +99,13 @@ export function ChatPinsDrawer() {
     setPinToView(pin);
   }, []);
 
-  const filters = ["All", "Charts", "Notes", "Alerts"];
+  const filters = ["All", "Charts", "Notes" /* , "Alerts" */];
 
   const filteredPins = pins.filter((pin) => {
     if (activeFilter === "All") return true;
     if (activeFilter === "Charts") return pin.response_type === "chart";
     if (activeFilter === "Notes") return pin.response_type === "note";
-    if (activeFilter === "Alerts") return pin.response_type === "alert";
+    // if (activeFilter === "Alerts") return pin.response_type === "alert";
     return true;
   });
 

@@ -121,14 +121,6 @@ export function CreateBoardModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Source
-              </label>
-              <div className="flex items-center h-9 px-3 border border-border-mid rounded-md bg-gray-50 text-sm text-text-secondary">
-                Sales
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Description (optional)
               </label>
               <Textarea

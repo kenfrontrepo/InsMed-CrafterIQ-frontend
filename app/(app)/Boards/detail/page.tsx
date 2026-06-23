@@ -252,16 +252,13 @@ function BoardDetailContent() {
             <div className="px-4">
             
 
-            {/* Search & Filter bar — disabled until Insmed filter APIs are available */}
-            {false && (
-              <div className={`flex items-center justify-center gap-3 mb-4${showSearchFilter ? "" : " hidden"}`}>
-                <SearchPopover onSelect={handleSearchSelect} />
-                <FilterPopover
-                  filters={activeFilters}
-                  onApply={setActiveFilters}
-                />
-              </div>
-            )}
+            <div className={`flex items-center justify-center gap-3 mb-4${showSearchFilter ? "" : " hidden"}`}>
+              <SearchPopover onSelect={handleSearchSelect} />
+              <FilterPopover
+                filters={activeFilters}
+                onApply={setActiveFilters}
+              />
+            </div>
 
             {/* Active filter chips */}
             {Object.keys(activeFilters).length > 0 && (
