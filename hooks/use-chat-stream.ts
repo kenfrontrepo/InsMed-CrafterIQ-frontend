@@ -17,6 +17,8 @@ type InsmedStreamEvent = {
   sysoutput?: string;
   follow_up_questions?: string[];
   visual_spec?: VisualSpec;
+  brief_id?: string;
+  brief_data?: Record<string, unknown>;
   message_id?: string;
   result?: StreamingEvent["result"];
 };
@@ -32,6 +34,19 @@ const STREAM_PHASES: Record<string, { phase: string; message: string; progress: 
   visual_ready: { phase: "analyzing", message: "Building visualization…", progress: 90 },
   insights_ready: { phase: "analyzing", message: "Insights ready", progress: 95 },
 };
+
+const BRIEF_STREAM_PHASES: Record<string, { phase: string; message: string; progress: number }> = {
+  workflow_start: { phase: "brief", message: "Starting brief generation…", progress: 10 },
+  identifying_entity: { phase: "brief", message: "Identifying entity…", progress: 30 },
+  entity_identified: { phase: "brief", message: "Entity identified", progress: 50 },
+  formatting_brief: { phase: "brief", message: "Formatting brief…", progress: 75 },
+  saving_brief: { phase: "brief", message: "Saving brief…", progress: 90 },
+  brief_ready: { phase: "brief", message: "Brief ready", progress: 95 },
+};
+
+function getStreamPhase(eventName: string) {
+  return STREAM_PHASES[eventName] ?? BRIEF_STREAM_PHASES[eventName];
+}
 
 function toStreamResult(
   event: InsmedStreamEvent
@@ -69,8 +84,10 @@ export function useChatStream() {
   const activeChat = useChatStore((state) => state.activeChat);
 
   const sendMessage = useCallback(
-    async (question: string) => {
+    async (question: string, options?: { is_brief?: boolean }) => {
       if (!userId) return;
+
+      const isBrief = options?.is_brief ?? false;
 
       addMessage({ role: "user", content: question });
 
@@ -82,7 +99,8 @@ export function useChatStream() {
         const response = await streamChat(
           userId,
           question,
-          activeChat?.conversationId || null
+          activeChat?.conversationId || null,
+          isBrief
         );
 
         const reader = response.body?.getReader();
@@ -111,7 +129,7 @@ export function useChatStream() {
             try {
               const event = JSON.parse(data) as InsmedStreamEvent;
 
-              if (event.event === "insights_ready") {
+              if (event.event === "insights_ready" || event.event === "brief_ready") {
                 latestResult = toStreamResult(event);
               }
 
@@ -121,7 +139,7 @@ export function useChatStream() {
                   : latestResult ||
                     toStreamResult({
                       ...event,
-                      sysoutput: "No response received.",
+                      sysoutput: event.sysoutput || "No response received.",
                     });
 
                 finalizeStreamingMessage(messageId, {
@@ -132,7 +150,7 @@ export function useChatStream() {
                 continue;
               }
 
-              const phase = STREAM_PHASES[event.event];
+              const phase = getStreamPhase(event.event);
               if (phase) {
                 updateStreamingMessage(messageId, {
                   event: event.event,

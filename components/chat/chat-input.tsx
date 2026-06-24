@@ -52,7 +52,7 @@ export interface ChatInputHandle {
 }
 
 interface ChatInputProps {
-  onSubmit: (message: string, options?: { is_report?: boolean }) => void;
+  onSubmit: (message: string, options?: { is_brief?: boolean }) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -233,7 +233,7 @@ export function ChatInput({
   const handleSubmit = useCallback(() => {
     const trimmed = inputValue.trim();
     if (!trimmed || disabled) return;
-    onSubmit(trimmed, isReportMode ? { is_report: true } : undefined);
+    onSubmit(trimmed, isReportMode ? { is_brief: true } : undefined);
     setInputValue("");
     setMentionOpen(false);
     setIsReportMode(false);

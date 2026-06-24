@@ -55,6 +55,7 @@ export interface AskCrafterStreamRequest {
   question: string;
   conversation_id?: string | null;
   user_id?: string | null;
+  is_brief?: boolean;
 }
 
 function userHeaders(userId: string) {
@@ -64,12 +65,14 @@ function userHeaders(userId: string) {
 export async function streamChat(
   userId: string,
   question: string,
-  conversationId: string | null
+  conversationId: string | null,
+  isBrief = false
 ): Promise<Response> {
   const body: AskCrafterStreamRequest = {
     question,
     user_id: userId,
     conversation_id: conversationId || null,
+    is_brief: isBrief,
   };
 
   const res = await fetch(`${API_BASE_URL}/insmed/ask-stream`, {

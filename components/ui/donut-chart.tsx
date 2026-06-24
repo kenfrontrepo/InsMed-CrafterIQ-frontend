@@ -41,6 +41,7 @@ interface DonutChartProps {
   height?: number;
   className?: string;
   showLegend?: boolean;
+  compact?: boolean;
   innerRadius?: number;
   centerLabel?: string;
   centerValue?: number;
@@ -64,6 +65,7 @@ export function DonutChart({
   height = 400, 
   className,
   showLegend = true,
+  compact = false,
   innerRadius = 50,
   isFullScreen = false,
   centerLabel,
@@ -90,8 +92,10 @@ export function DonutChart({
       am5percent.PieChart.new(root, {
         layout: root.verticalLayout,
         innerRadius: am5.percent(innerRadius),
-        paddingLeft: 10,
-        paddingRight: 10,
+        paddingLeft: compact ? 8 : 10,
+        paddingRight: compact ? 8 : 10,
+        paddingTop: compact ? 4 : 10,
+        paddingBottom: compact ? 4 : 10,
       })
     );
 
@@ -152,14 +156,15 @@ export function DonutChart({
       }
     }
 
-    // Configure labels to appear outside with tick lines
+    // Configure labels — hidden in compact mode (legend only)
     series.labels.template.setAll({
-      fontSize: isFullScreen ? 14 : 10,
+      forceHidden: compact,
+      fontSize: isFullScreen ? 14 : compact ? 9 : 10,
       fill: am5.color(colors.axisLabel),
       text: "{category}",
       textType: "circular",
-      radius: isFullScreen ? 20 : 15,
-      maxWidth: isFullScreen ? 150 : 100,
+      radius: isFullScreen ? 20 : compact ? 8 : 15,
+      maxWidth: isFullScreen ? 150 : compact ? 72 : 100,
       oversizedBehavior: isFullScreen ? "truncate" : "wrap",
       ellipsis: isFullScreen ? "..." : undefined,
     });
@@ -179,8 +184,9 @@ export function DonutChart({
     series.ticks.template.setAll({
       stroke: am5.color(colors.axisLabel),
       strokeWidth: 0.5,
-      strokeOpacity: 0.3,
-      length: 8,
+      strokeOpacity: compact ? 0 : 0.3,
+      length: compact ? 0 : 8,
+      forceHidden: compact,
     });
 
     // Tooltip
@@ -242,15 +248,17 @@ export function DonutChart({
         am5.Legend.new(root, {
           centerX: am5.percent(50),
           x: am5.percent(50),
-          marginTop: 15,
-          marginBottom: 15,
+          marginTop: compact ? 8 : 15,
+          marginBottom: compact ? 4 : 15,
         })
       );
       
       legend.labels.template.setAll({
-        fontSize: 13,
+        fontSize: compact ? 11 : 13,
         fontWeight: "400",
         fill: am5.color(colors.legend),
+        maxWidth: compact ? 140 : undefined,
+        oversizedBehavior: compact ? "truncate" : undefined,
       });
       
       legend.valueLabels.template.setAll({
@@ -271,7 +279,7 @@ export function DonutChart({
     series.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, showLegend, innerRadius, centerLabel, centerValue, isFullScreen, isCurrency]);
+  }, [data, showLegend, compact, innerRadius, centerLabel, centerValue, isFullScreen, isCurrency]);
 
   return (
     <div

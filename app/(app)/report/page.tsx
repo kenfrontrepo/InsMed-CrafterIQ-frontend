@@ -24,6 +24,7 @@ import {
   Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FilterableDataTable } from "@/components/report/filterable-data-table";
 import { BarChart } from "@/components/ui/bar-chart";
 import { HorizontalBarChart } from "@/components/ui/horizontal-bar-chart";
 import { DonutChart } from "@/components/ui/donut-chart";
@@ -54,35 +55,21 @@ function StatCard({ stat }: { stat: ReportStat }) {
   );
 }
 
-function DataTable({ section }: { section: ReportChartSection }) {
-  if (!section.columns || !section.data || section.data.length === 0) {
-    return <p className="text-xs text-text-tertiary py-4 text-center">No data available</p>;
+function ReportTable({ section }: { section: ReportChartSection }) {
+  if (!section.columns?.length || !section.data?.length) {
+    return (
+      <p className="text-xs text-text-tertiary py-4 text-center">
+        No data available
+      </p>
+    );
   }
+
   return (
-    <div className="overflow-auto max-h-[400px]">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr>
-            {section.columns.map((col) => (
-              <th key={col} className="text-[10px] font-bold tracking-[0.8px] uppercase text-text-tertiary px-3 py-2 text-left border-b border-border-mid sticky top-0 bg-card z-[1]">
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {section.data.map((row, i) => (
-            <tr key={i} className="hover:bg-hover transition-colors">
-              {section.columns!.map((col) => (
-                <td key={col} className="px-3 py-2.5 text-[13px] text-text-primary border-b border-border-subtle">
-                  {String(row[col] ?? "—")}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <FilterableDataTable
+      columns={section.columns}
+      data={section.data}
+      sortable={section.sortable ?? true}
+    />
   );
 }
 
@@ -329,7 +316,7 @@ function ReportContent({ report }: { report: ReportData }) {
               <span className="text-[11px] text-text-tertiary">{report.customer_portfolio.note}</span>
             )}
           </div>
-          <DataTable section={report.customer_portfolio} />
+          <ReportTable section={report.customer_portfolio} />
         </div>
       )}
 
@@ -339,7 +326,7 @@ function ReportContent({ report }: { report: ReportData }) {
           <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
             {report.order_history.title}
           </div>
-          <DataTable section={report.order_history} />
+          <ReportTable section={report.order_history} />
         </div>
       )}
 

@@ -46,7 +46,8 @@ export interface VisualSpec {
 
 export function shouldAttachVisualSpec(spec?: VisualSpec): boolean {
   if (!spec) return false;
-  if ((spec as unknown as { type?: string }).type === "report") return true;
+  const specType = (spec as unknown as { type?: string }).type;
+  if (specType === "report" || specType === "brief") return true;
   return spec.is_visual !== false && Boolean(spec.chart_type);
 }
 

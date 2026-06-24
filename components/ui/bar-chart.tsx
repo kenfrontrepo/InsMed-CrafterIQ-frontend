@@ -29,6 +29,7 @@ interface BarChartProps {
   className?: string;
   xLabel?: string;
   yLabel?: string;
+  compact?: boolean;
 }
 
 const defaultData: BarChartData[] = [
@@ -52,6 +53,7 @@ export function BarChart({
   className,
   xLabel,
   yLabel,
+  compact = false,
 }: BarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -70,12 +72,22 @@ export function BarChart({
       { number: 1e12, suffix: "T" },
     ]);
 
+    const maxLabelLen = data.reduce(
+      (max, item) => Math.max(max, item.category.length),
+      0
+    );
+    const shouldRotate = compact
+      ? maxLabelLen > 8 || data.length > 4
+      : data.length > 5;
+
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
         panX: false,
         panY: false,
         paddingLeft: 0,
         paddingRight: 0,
+        paddingBottom: shouldRotate ? (compact ? 36 : 24) : compact ? 16 : 8,
+        paddingTop: compact ? 8 : 0,
       })
     );
 
@@ -97,13 +109,12 @@ export function BarChart({
       })
     );
 
-    // Rotate labels when there are many items to prevent overlap
-    const shouldRotate = data.length > 5;
+    // Rotate labels when there are many items or long category names
     xAxis.get("renderer").labels.template.setAll({
-      fontSize: 11,
+      fontSize: compact ? 10 : 11,
       fill: am5.color("#6b7280"),
       paddingTop: 5,
-      maxWidth: shouldRotate ? 90 : 120,
+      maxWidth: shouldRotate ? (compact ? 72 : 90) : compact ? 96 : 120,
       oversizedBehavior: "truncate",
       rotation: shouldRotate ? -45 : 0,
       centerY: shouldRotate ? am5.percent(50) : am5.percent(0),
@@ -221,7 +232,7 @@ export function BarChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data]);
+  }, [data, xLabel, yLabel, compact]);
 
   return (
     <div

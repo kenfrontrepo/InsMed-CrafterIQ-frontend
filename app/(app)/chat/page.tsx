@@ -82,8 +82,8 @@ function ChatPageContent() {
   }, [activeChat?.messages]);
 
   const handleSendMessage = useCallback(
-    (content: string) => {
-      sendMessage(content);
+    (content: string, options?: { is_brief?: boolean }) => {
+      sendMessage(content, options);
     },
     [sendMessage]
   );

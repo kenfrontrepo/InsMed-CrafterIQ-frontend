@@ -163,22 +163,41 @@ export const ChatMessage = memo(function ChatMessage({
               </ReactMarkdown>
             </div>
 
-            {/* Report link */}
+            {/* Brief link (Insmed) or legacy report link (playpower) */}
             {message.visualSpec &&
-              (message.visualSpec as unknown as { type?: string; report_id?: string }).type === "report" &&
-              (message.visualSpec as unknown as { report_id?: string }).report_id && (
-                <Link
-                  href={`/report?id=${(message.visualSpec as unknown as { report_id: string }).report_id}`}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-text-primary text-white text-sm font-medium rounded-lg hover:bg-[#333330] transition-colors mt-1"
-                >
-                  <FileText className="h-4 w-4" />
-                  View Brief
-                  <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                </Link>
-              )}
+              (() => {
+                const spec = message.visualSpec as unknown as {
+                  type?: string;
+                  brief_id?: string;
+                  report_id?: string;
+                };
+                const briefId =
+                  spec.type === "brief" ? spec.brief_id : undefined;
+                const reportId =
+                  spec.type === "report" ? spec.report_id : undefined;
+                const href = briefId
+                  ? `/brief?id=${briefId}`
+                  : reportId
+                    ? `/report?id=${reportId}`
+                    : null;
+                if (!href) return null;
+                return (
+                  <Link
+                    href={href}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-text-primary text-white text-sm font-medium rounded-lg hover:bg-[#333330] transition-colors mt-1"
+                  >
+                    <FileText className="h-4 w-4" />
+                    View Brief
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Link>
+                );
+              })()}
 
             {/* Chart action bar + collapsible chart */}
-            {hasChart && message.visualSpec && (message.visualSpec as unknown as { type?: string }).type !== "report" && (
+            {hasChart &&
+              message.visualSpec &&
+              (message.visualSpec as unknown as { type?: string }).type !== "report" &&
+              (message.visualSpec as unknown as { type?: string }).type !== "brief" && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <button
