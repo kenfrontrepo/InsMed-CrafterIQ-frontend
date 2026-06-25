@@ -159,6 +159,7 @@ function ChatPageContent() {
         )}
       </div>
 
+      {/* Pinned insights — fixed at bottom, never causes scroll */}
       <ChatPinsDrawer />
     </div>
   );

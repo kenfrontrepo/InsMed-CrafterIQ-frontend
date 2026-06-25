@@ -109,11 +109,9 @@ export function ChatPinsDrawer() {
     return true;
   });
 
-  if (pins.length === 0 && !isLoading) return null;
-
   return (
     <>
-      {/* Pinned bar — always visible 40px handle in flex flow */}
+      {/* Pinned bar — always visible in chat (playpower) */}
       <div className="shrink-0 relative z-20">
         {/* Expanded content — overlays upward */}
         {open && (
@@ -153,7 +151,9 @@ export function ChatPinsDrawer() {
                 ))
               ) : (
                 <div className="w-full text-xs text-text-tertiary py-4 px-2">
-                  No {activeFilter.toLowerCase()} pins found
+                  {pins.length === 0
+                    ? "No pins yet — pin charts from your conversations to see them here"
+                    : `No ${activeFilter.toLowerCase()} pins found`}
                 </div>
               )}
             </div>
