@@ -64,6 +64,7 @@ function ChatPageContent() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Playpower: URL follows store — no id on new chat; add id after first response.
   useEffect(() => {
     const conversationId = activeChat?.conversationId;
     const currentUrlConversationId = searchParams.get("conversation_id");

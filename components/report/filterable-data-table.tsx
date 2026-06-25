@@ -150,7 +150,15 @@ export function FilterableDataTable({
     setSortDir(dir);
   }, []);
 
+  const getFilterType = (col: string): "text" | "date" | "range" | null => {
+    if (!sortable) return null;
+    if (isDateColumn(col)) return "date";
+    if (isNumericColumn(col)) return "range";
+    return "text";
+  };
+
   const filteredData = useMemo(() => {
+    if (data.length === 0) return [];
     return data.filter((row) => {
       for (const col of columns) {
         const key = colKeyMap[col] ?? col;
@@ -205,18 +213,11 @@ export function FilterableDataTable({
     });
   }, [filteredData, sortCol, sortDir, colKeyMap]);
 
-  if (!columns.length || !data.length) {
+  if (!columns.length) {
     return (
       <p className="text-xs text-text-tertiary py-4 text-center">{emptyMessage}</p>
     );
   }
-
-  const getFilterType = (col: string): "text" | "date" | "range" | null => {
-    if (!sortable) return null;
-    if (isDateColumn(col)) return "date";
-    if (isNumericColumn(col)) return "range";
-    return "text";
-  };
 
   const isFilterActive = (col: string): boolean => {
     const dateFilter = dateFilters[col];
@@ -394,6 +395,15 @@ export function FilterableDataTable({
                   })}
                 </tr>
               ))
+            ) : data.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="px-3 py-6 text-xs text-text-tertiary text-center"
+                >
+                  {emptyMessage}
+                </td>
+              </tr>
             ) : (
               <tr>
                 <td

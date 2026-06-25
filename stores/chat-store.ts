@@ -390,6 +390,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => {
       if (!state.activeChat) return state;
 
+      const conversationId =
+        result.conversation_id || state.activeChat.conversationId;
+
       const updatedMessages = state.activeChat.messages.map((msg) =>
         msg.id === messageId
           ? {
@@ -399,7 +402,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 ? result.visual_spec
                 : undefined,
               followUpQuestions: result.follow_up_questions,
-              conversationId: result.conversation_id,
+              conversationId,
               serverMessageId: result.message_id,
               isStreaming: false,
               streamingPhase: undefined,
@@ -412,7 +415,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const updatedChat: Chat = {
         ...state.activeChat,
         messages: updatedMessages,
-        conversationId: result.conversation_id,
+        conversationId,
       };
 
       return {

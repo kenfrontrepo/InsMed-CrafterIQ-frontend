@@ -175,11 +175,16 @@ export const ChatMessage = memo(function ChatMessage({
                   spec.type === "brief" ? spec.brief_id : undefined;
                 const reportId =
                   spec.type === "report" ? spec.report_id : undefined;
-                const href = briefId
-                  ? `/brief?id=${briefId}`
-                  : reportId
-                    ? `/report?id=${reportId}`
-                    : null;
+                let href: string | null = null;
+                if (briefId) {
+                  const params = new URLSearchParams({ id: briefId });
+                  if (message.conversationId) {
+                    params.set("conversation_id", message.conversationId);
+                  }
+                  href = `/brief?${params.toString()}`;
+                } else if (reportId) {
+                  href = `/report?id=${reportId}`;
+                }
                 if (!href) return null;
                 return (
                   <Link

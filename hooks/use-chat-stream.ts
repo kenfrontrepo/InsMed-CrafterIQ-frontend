@@ -81,7 +81,6 @@ export function useChatStream() {
     (state) => state.finalizeStreamingMessage
   );
   const setLoading = useChatStore((state) => state.setLoading);
-  const activeChat = useChatStore((state) => state.activeChat);
 
   const sendMessage = useCallback(
     async (question: string, options?: { is_brief?: boolean }) => {
@@ -94,12 +93,16 @@ export function useChatStream() {
       setLoading(true);
       const messageId = addStreamingMessage();
       let latestResult: NonNullable<StreamingEvent["result"]> | null = null;
+      let didFinalize = false;
 
       try {
+        const conversationId =
+          useChatStore.getState().activeChat?.conversationId ?? null;
+
         const response = await streamChat(
           userId,
           question,
-          activeChat?.conversationId || null,
+          conversationId,
           isBrief
         );
 
@@ -145,8 +148,12 @@ export function useChatStream() {
                 finalizeStreamingMessage(messageId, {
                   ...baseResult,
                   conversation_id:
-                    event.conversation_id ?? baseResult.conversation_id ?? "",
+                    event.conversation_id ??
+                    baseResult.conversation_id ??
+                    useChatStore.getState().activeChat?.conversationId ??
+                    "",
                 });
+                didFinalize = true;
                 continue;
               }
 
@@ -165,7 +172,7 @@ export function useChatStream() {
           }
         }
 
-        if (latestResult) {
+        if (latestResult && !didFinalize) {
           finalizeStreamingMessage(messageId, latestResult);
         }
       } catch (error) {
@@ -194,7 +201,6 @@ export function useChatStream() {
       updateStreamingMessage,
       finalizeStreamingMessage,
       setLoading,
-      activeChat?.conversationId,
       userId,
     ]
   );

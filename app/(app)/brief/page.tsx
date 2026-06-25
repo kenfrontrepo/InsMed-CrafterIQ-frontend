@@ -22,6 +22,7 @@ import {
   type BriefChartSection,
   type BriefLegacyChart,
   type BriefSection,
+  type BriefTimelineItem,
 } from "@/lib/api/briefsApi";
 import { Button } from "@/components/ui/button";
 import { FilterableDataTable } from "@/components/report/filterable-data-table";
@@ -64,6 +65,21 @@ function getBriefTypeLabel(briefType: string) {
   }
 }
 
+function formatHeaderExtraKey(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function isProgressDonut(section: BriefChartSection): boolean {
+  const title = section.title.toLowerCase();
+  return (
+    title.includes("completion") ||
+    title.includes("progress") ||
+    (section.center_label != null && section.center_value != null)
+  );
+}
+
 function StatCard({ stat }: { stat: BriefDisplayStat }) {
   const direction = stat.direction || stat.trend || "";
   const arrow =
@@ -101,7 +117,7 @@ function BriefTableSection({ section }: { section: BriefChartSection }) {
       <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
         {section.title}
       </div>
-      {!columns.length || !rows.length ? (
+      {!columns.length ? (
         <EmptyChartMessage message="No data available" />
       ) : (
         <FilterableDataTable
@@ -114,7 +130,44 @@ function BriefTableSection({ section }: { section: BriefChartSection }) {
   );
 }
 
+function BriefTimelineSection({ items }: { items: BriefTimelineItem[] }) {
+  return (
+    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
+      <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
+        Timeline
+      </div>
+      {items.length > 0 ? (
+        <div className="flex flex-col gap-0">
+          {items.map((item, i) => (
+            <div
+              key={`${item.label}-${i}`}
+              className={`flex items-center justify-between gap-4 py-3 ${
+                i < items.length - 1 ? "border-b border-border-subtle" : ""
+              }`}
+            >
+              <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">
+                {item.label}
+              </span>
+              <span
+                className={`text-[13px] font-medium text-right ${
+                  item.alert ? "text-[#dc2626]" : "text-text-primary"
+                }`}
+              >
+                {item.value || "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyChartMessage message="No timeline data available" />
+      )}
+    </div>
+  );
+}
+
 function BriefDonutSection({ section }: { section: BriefChartSection }) {
+  const keepZeroSlices = isProgressDonut(section);
+
   const donutData = useMemo(
     () =>
       (section.labels ?? [])
@@ -122,16 +175,18 @@ function BriefDonutSection({ section }: { section: BriefChartSection }) {
           category: label,
           value: section.values?.[i] ?? 0,
         }))
-        .filter((item) => item.value > 0),
-    [section.labels, section.values]
+        .filter((item) => keepZeroSlices || item.value > 0),
+    [section.labels, section.values, keepZeroSlices]
   );
+
+  const hasChartStructure = (section.labels?.length ?? 0) > 0;
 
   return (
     <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
       <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
         {section.title}
       </div>
-      {donutData.length > 0 ? (
+      {hasChartStructure && donutData.length > 0 ? (
         <DonutChart
           data={donutData}
           height={200}
@@ -224,7 +279,7 @@ function LegacyChartBlock({ chart }: { chart: BriefLegacyChart }) {
         <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
           {chart.title}
         </div>
-        {!columns.length || !rows.length ? (
+        {!columns.length ? (
           <EmptyChartMessage message="No data available" />
         ) : (
           <FilterableDataTable
@@ -325,9 +380,11 @@ function LegacySections({ sections }: { sections: BriefSection[] }) {
 function BriefContent({
   data: rawData,
   entityName,
+  conversationId,
 }: {
   data: BriefData;
   entityName: string;
+  conversationId: string | null;
 }) {
   const view = useMemo(
     () => normalizeBriefData(rawData, entityName),
@@ -358,11 +415,15 @@ function BriefContent({
     }
   }, [view.title, view.subtitle]);
 
+  const backToChatHref = conversationId
+    ? `/chat?conversation_id=${conversationId}`
+    : "/chat";
+
   return (
     <div className="max-w-[1100px] mx-auto p-10 animate-[fadeUp_0.3s_ease] print:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6 print:hidden">
         <Link
-          href="/chat"
+          href={backToChatHref}
           className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -418,7 +479,9 @@ function BriefContent({
           ) : null}
           {Object.entries(view.headerExtra).map(([key, val]) => (
             <div key={key}>
-              <span className="text-text-tertiary font-normal">{key}:</span>{" "}
+              <span className="text-text-tertiary font-normal">
+                {formatHeaderExtraKey(key)}:
+              </span>{" "}
               <strong className="text-text-primary font-extrabold">
                 {String(val)}
               </strong>
@@ -474,13 +537,41 @@ function BriefContent({
         </div>
       ) : null}
 
-      {view.donutCharts.length > 0 ? (
-        <div className="grid grid-cols-2 gap-5 mb-5">
-          {view.donutCharts.map((section) => (
-            <BriefDonutSection key={section.title} section={section} />
-          ))}
-        </div>
-      ) : null}
+      {(() => {
+        const showTimelineBesideDonut =
+          view.timeline.length > 0 && view.donutCharts.length === 1;
+
+        if (showTimelineBesideDonut) {
+          return (
+            <div className="grid grid-cols-2 gap-5 mb-5">
+              <BriefDonutSection section={view.donutCharts[0]} />
+              <BriefTimelineSection items={view.timeline} />
+            </div>
+          );
+        }
+
+        const donutRows: BriefChartSection[][] = [];
+        for (let i = 0; i < view.donutCharts.length; i += 2) {
+          donutRows.push(view.donutCharts.slice(i, i + 2));
+        }
+
+        return (
+          <>
+            {donutRows.map((row, rowIndex) => (
+              <div key={`donuts-${rowIndex}`} className="grid grid-cols-2 gap-5 mb-5">
+                {row.map((section) => (
+                  <BriefDonutSection key={section.title} section={section} />
+                ))}
+              </div>
+            ))}
+            {view.timeline.length > 0 ? (
+              <div className="mb-5">
+                <BriefTimelineSection items={view.timeline} />
+              </div>
+            ) : null}
+          </>
+        );
+      })()}
 
       {view.horizontalBarCharts.map((section) => (
         <BriefHorizontalBarSection key={section.title} section={section} />
@@ -508,12 +599,16 @@ function BriefPageInner() {
   const searchParams = useSearchParams();
   const { userId } = useUserId();
   const briefId = searchParams.get("id");
+  const conversationIdFromUrl = searchParams.get("conversation_id");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["brief", briefId, userId],
     queryFn: () => fetchBrief(briefId!, userId!),
     enabled: !!briefId && !!userId,
   });
+
+  const conversationId =
+    conversationIdFromUrl ?? data?.brief?.conversation_id ?? null;
 
   if (!briefId) {
     return (
@@ -547,7 +642,14 @@ function BriefPageInner() {
           <p className="text-xs text-text-tertiary mb-4">
             {error instanceof Error ? error.message : "Unknown error"}
           </p>
-          <Link href="/chat" className="text-xs text-text-primary underline">
+          <Link
+            href={
+              conversationId
+                ? `/chat?conversation_id=${conversationId}`
+                : "/chat"
+            }
+            className="text-xs text-text-primary underline"
+          >
             Back to chat
           </Link>
         </div>
@@ -560,6 +662,7 @@ function BriefPageInner() {
       <BriefContent
         data={data.brief.brief_data}
         entityName={data.brief.entity_name}
+        conversationId={conversationId}
       />
     </div>
   );

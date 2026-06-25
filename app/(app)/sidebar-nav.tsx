@@ -54,7 +54,9 @@ export function SidebarNav() {
 
   const handleNewChat = useCallback(() => {
     createNewChat();
-    if (!pathname.startsWith("/chat")) {
+    if (pathname.startsWith("/chat")) {
+      router.replace("/chat", { scroll: false });
+    } else {
       router.push("/chat");
     }
     closeOnMobile();

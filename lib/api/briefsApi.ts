@@ -55,16 +55,28 @@ export interface BriefSection {
   charts?: BriefLegacyChart[];
 }
 
+export interface BriefTimelineItem {
+  label: string;
+  value: string;
+  icon?: string;
+  alert?: boolean;
+}
+
 /** Report-style brief (current Insmed API) */
 export interface BriefReportData {
   brief_type: string;
   header: BriefHeader;
   ai_summary?: BriefAISummary;
   stats?: BriefDisplayStat[];
+  /** Business unit brief */
   status_distribution?: BriefChartSection;
   health_distribution?: BriefChartSection;
   budget_by_project?: BriefChartSection;
   projects_list?: BriefChartSection;
+  /** Project brief */
+  progress_donut?: BriefChartSection;
+  timeline?: BriefTimelineItem[];
+  stakeholders?: BriefChartSection;
   brief_id?: string;
 }
 
@@ -97,7 +109,34 @@ export interface BriefViewModel {
   donutCharts: BriefChartSection[];
   horizontalBarCharts: BriefChartSection[];
   tableSections: BriefChartSection[];
+  timeline: BriefTimelineItem[];
   legacySections: BriefSection[];
+}
+
+const DONUT_CHART_FIELDS = [
+  "status_distribution",
+  "health_distribution",
+  "progress_donut",
+] as const;
+
+const HORIZONTAL_BAR_FIELDS = ["budget_by_project"] as const;
+
+const TABLE_FIELDS = ["projects_list", "stakeholders"] as const;
+
+function pickChartSection(
+  data: BriefReportData,
+  key: string
+): BriefChartSection | undefined {
+  const value = data[key as keyof BriefReportData];
+  if (
+    value &&
+    typeof value === "object" &&
+    "chart_type" in value &&
+    "title" in value
+  ) {
+    return value as BriefChartSection;
+  }
+  return undefined;
 }
 
 export function isReportStyleBrief(data: BriefData): data is BriefReportData {
@@ -109,15 +148,17 @@ export function normalizeBriefData(
   entityName = ""
 ): BriefViewModel {
   if (isReportStyleBrief(data)) {
-    const donutCharts = [data.status_distribution, data.health_distribution].filter(
-      (chart): chart is BriefChartSection => Boolean(chart)
-    );
-    const horizontalBarCharts = [data.budget_by_project].filter(
-      (chart): chart is BriefChartSection => Boolean(chart)
-    );
-    const tableSections = [data.projects_list].filter(
-      (chart): chart is BriefChartSection => Boolean(chart)
-    );
+    const donutCharts = DONUT_CHART_FIELDS.map((key) =>
+      pickChartSection(data, key)
+    ).filter((chart): chart is BriefChartSection => Boolean(chart));
+
+    const horizontalBarCharts = HORIZONTAL_BAR_FIELDS.map((key) =>
+      pickChartSection(data, key)
+    ).filter((chart): chart is BriefChartSection => Boolean(chart));
+
+    const tableSections = TABLE_FIELDS.map((key) =>
+      pickChartSection(data, key)
+    ).filter((chart): chart is BriefChartSection => Boolean(chart));
 
     return {
       briefType: data.brief_type,
@@ -133,6 +174,7 @@ export function normalizeBriefData(
       donutCharts,
       horizontalBarCharts,
       tableSections,
+      timeline: data.timeline ?? [],
       legacySections: [],
     };
   }
@@ -151,6 +193,7 @@ export function normalizeBriefData(
     donutCharts: [],
     horizontalBarCharts: [],
     tableSections: [],
+    timeline: [],
     legacySections: (data.sections ?? []).map((section) => ({
       ...section,
       charts: section.charts ?? [],
