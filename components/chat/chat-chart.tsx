@@ -3,7 +3,7 @@
 import { memo, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { VisualSpec } from "@/stores/chat-store";
-import { DataTable } from "@/components/ui/data-table";
+import { FilterableDataTable } from "@/components/report/filterable-data-table";
 import { KpiCard, type KpiMetric } from "@/components/ui/kpi-card";
 
 // Chart loading skeleton
@@ -452,7 +452,7 @@ export const ChatChart = memo(function ChatChart({
 
       case "table":
         return (
-          <DataTable
+          <FilterableDataTable
             columns={visualSpec.columns ?? []}
             data={visualSpec.data ?? []}
             sortable={visualSpec.sortable ?? true}

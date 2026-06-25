@@ -4,6 +4,10 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  formatChartValue,
+} from "@/components/ui/chart-value-axis";
 
 const COLORS = [
   "#7BB5D8", // Light Blue
@@ -39,11 +43,8 @@ const defaultData: HorizontalBarChartData[] = [
   { category: "Product E", value: 4800 },
 ];
 
-function formatLargeNumber(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return value.toFixed(1);
+function formatLargeNumber(value: number, axisLabel?: string): string {
+  return formatChartValue(value, axisLabel);
 }
 
 export function HorizontalBarChart({ 
@@ -98,13 +99,18 @@ export function HorizontalBarChart({
     // X Axis (Values)
     const xAxis = chart.xAxes.push(
       am5xy.ValueAxis.new(root, {
-        renderer: am5xy.AxisRendererX.new(root, { 
+        renderer: am5xy.AxisRendererX.new(root, {
           strokeOpacity: 0,
           minGridDistance: 80,
         }),
         min: 0,
-        numberFormat: "#.#a",
       })
+    );
+
+    applyValueAxisFormat(
+      xAxis,
+      data.map((item) => item.value),
+      xLabel
     );
 
     // Number formatter
@@ -202,7 +208,7 @@ export function HorizontalBarChart({
         const cat = dataItem.get("categoryY" as any) as string;
         const val = dataItem.get("valueX" as any) as number;
         if (cat && val !== undefined) {
-          return `${cat}: ${formatLargeNumber(val)}`;
+          return `${cat}: ${formatLargeNumber(val, xLabel)}`;
         }
       }
       return _text ?? "";

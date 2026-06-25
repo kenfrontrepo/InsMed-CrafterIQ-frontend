@@ -4,6 +4,10 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  formatChartValue,
+} from "@/components/ui/chart-value-axis";
 
 const COLORS = [
   "#7BB5D8", // Light Blue
@@ -41,11 +45,6 @@ const defaultData: BarChartData[] = [
   { category: "Product F", value: 3800 },
   { category: "Product G", value: 4300 },
 ];
-
-const formatCompact = new Intl.NumberFormat("en", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
 
 export function BarChart({
   data = defaultData,
@@ -136,13 +135,18 @@ export function BarChart({
       );
     }
 
-    // Y Axis — compact number format (#.#a → 142M, 56.8M)
+    // Y Axis — integer ticks for counts, compact format for large values
     const yAxis = chart.yAxes.push(
       am5xy.ValueAxis.new(root, {
-        numberFormat: "#.#a",
         min: 0,
         renderer: am5xy.AxisRendererY.new(root, { strokeOpacity: 0 }),
       })
+    );
+
+    applyValueAxisFormat(
+      yAxis,
+      data.map((item) => item.value),
+      yLabel
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -186,7 +190,7 @@ export function BarChart({
       const value = target.dataItem?.get("valueY");
       const category = target.dataItem?.get("categoryX");
       if (value !== undefined && category) {
-        return `${category}: ${formatCompact.format(value)}`;
+        return `${category}: ${formatChartValue(value, yLabel)}`;
       }
       return _text;
     });

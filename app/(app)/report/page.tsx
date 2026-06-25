@@ -56,7 +56,7 @@ function StatCard({ stat }: { stat: ReportStat }) {
 }
 
 function ReportTable({ section }: { section: ReportChartSection }) {
-  if (!section.columns?.length || !section.data?.length) {
+  if (!section.columns?.length) {
     return (
       <p className="text-xs text-text-tertiary py-4 text-center">
         No data available
@@ -67,7 +67,7 @@ function ReportTable({ section }: { section: ReportChartSection }) {
   return (
     <FilterableDataTable
       columns={section.columns}
-      data={section.data}
+      data={section.data ?? []}
       sortable={section.sortable ?? true}
     />
   );

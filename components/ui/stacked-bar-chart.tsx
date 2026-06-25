@@ -4,6 +4,10 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  extractSeriesValues,
+} from "@/components/ui/chart-value-axis";
 
 const COLORS = [
   "#7BB5D8",
@@ -119,8 +123,16 @@ export function StackedBarChart({
         am5xy.ValueAxis.new(root, {
           renderer: am5xy.AxisRendererX.new(root, { strokeOpacity: 0 }),
           min: 0,
-          numberFormat: "#.#a",
         })
+      );
+
+      applyValueAxisFormat(
+        xAxis,
+        extractSeriesValues(
+          data,
+          seriesConfig.map((config) => config.field)
+        ),
+        xLabel
       );
 
       yAxis.get("renderer").labels.template.setAll({
@@ -154,8 +166,16 @@ export function StackedBarChart({
         am5xy.ValueAxis.new(root, {
           renderer: am5xy.AxisRendererY.new(root, { strokeOpacity: 0 }),
           min: 0,
-          numberFormat: "#.#a",
         })
+      );
+
+      applyValueAxisFormat(
+        yAxis,
+        extractSeriesValues(
+          data,
+          seriesConfig.map((config) => config.field)
+        ),
+        yLabel
       );
 
       const shouldRotate = data.length > 6;
