@@ -10,6 +10,12 @@ export interface CreatePinRequest {
   pin_tags?: string | null;
   response_type?: string | null;
   dataset_id?: string | null;
+  /** Insight markdown from insights_ready / workflow_complete */
+  content?: string | null;
+  /** SQL from query_ready — helps pin when DB row isn't visible yet */
+  sql_query?: string | null;
+  /** Full chart/table spec from SSE — sent for reliable pinning */
+  visual_spec?: Record<string, unknown> | null;
 }
 
 /** PUT /insmed/pins/updatepintitle/{PinId}/{UserId} */

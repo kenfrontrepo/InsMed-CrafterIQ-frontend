@@ -80,13 +80,21 @@ export const ChatMessage = memo(function ChatMessage({
   const [pinId, setPinId] = useState<string | null>(null);
   const [isPinning, setIsPinning] = useState(false);
 
+  const canPin =
+    Boolean(message.serverMessageId) && (message.pinReady ?? true);
+
   const handlePin = useCallback(async () => {
-    if (!message.visualSpec || isPinning) return;
+    if (!message.visualSpec || !message.serverMessageId || !canPin || isPinning) {
+      return;
+    }
     setIsPinning(true);
     try {
       const data = await createPin(userId ?? "", {
-        message_id: message.serverMessageId || message.id,
+        message_id: message.serverMessageId,
         conversation_id: message.conversationId || "",
+        content: message.content || null,
+        sql_query: message.sqlQuery || null,
+        visual_spec: message.visualSpec as unknown as Record<string, unknown>,
         title: message.visualSpec.title || null,
         response_type:
           message.visualSpec.chart_type === "table" ? "table" : "chart",
@@ -104,7 +112,17 @@ export const ChatMessage = memo(function ChatMessage({
     } finally {
       setIsPinning(false);
     }
-  }, [message.id, message.serverMessageId, message.conversationId, message.visualSpec, isPinning, queryClient, userId]);
+  }, [
+    message.serverMessageId,
+    message.conversationId,
+    message.content,
+    message.sqlQuery,
+    message.visualSpec,
+    canPin,
+    isPinning,
+    queryClient,
+    userId,
+  ]);
 
   const handleUnpin = useCallback(async () => {
     if (!pinId || isPinning) return;
@@ -239,7 +257,12 @@ export const ChatMessage = memo(function ChatMessage({
                         <button
                           type="button"
                           onClick={pinId ? handleUnpin : handlePin}
-                          disabled={isPinning}
+                          disabled={isPinning || (!pinId && !canPin)}
+                          title={
+                            !canPin && !pinId
+                              ? "Pin available after response completes"
+                              : undefined
+                          }
                           className={`absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border shadow-sm transition-all disabled:opacity-50 opacity-0 group-hover/chart:opacity-100 focus:opacity-100 ${
                             pinId
                               ? "border-text-primary/30 bg-text-primary/10 text-text-primary hover:bg-text-primary/15"

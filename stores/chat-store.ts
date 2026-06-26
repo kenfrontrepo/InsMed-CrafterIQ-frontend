@@ -63,6 +63,8 @@ export interface StreamingEvent {
     message_id?: string;
     follow_up_questions: string[];
     visual_spec: VisualSpec;
+    sql_query?: string;
+    pin_ready?: boolean;
   };
 }
 
@@ -75,8 +77,12 @@ export interface Message {
   visualSpec?: VisualSpec;
   followUpQuestions?: string[];
   conversationId?: string;
-  /** Server-side message ID returned by the API (used for pinning, etc.) */
+  /** Server-side message ID from workflow_complete / insights_ready (used for pinning) */
   serverMessageId?: string;
+  /** SQL from query_ready SSE — sent with pin request */
+  sqlQuery?: string;
+  /** True after final insights_ready (status: complete) + server message_id */
+  pinReady?: boolean;
   isStreaming?: boolean;
   streamingPhase?: string;
   streamingMessage?: string;
@@ -208,6 +214,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         followUpQuestions: m.follow_up_questions,
         conversationId,
         serverMessageId: m.role === "assistant" ? m.id : undefined,
+        pinReady: m.role === "assistant",
       }));
 
       const firstTimestamp = messages[0]?.timestamp ?? new Date();
@@ -404,6 +411,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
               followUpQuestions: result.follow_up_questions,
               conversationId,
               serverMessageId: result.message_id,
+              sqlQuery: result.sql_query,
+              pinReady: Boolean(result.message_id && result.pin_ready),
               isStreaming: false,
               streamingPhase: undefined,
               streamingMessage: undefined,

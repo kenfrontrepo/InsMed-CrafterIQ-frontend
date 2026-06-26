@@ -20,6 +20,7 @@ type InsmedStreamEvent = {
   brief_id?: string;
   brief_data?: Record<string, unknown>;
   message_id?: string;
+  sql_query?: string;
   result?: StreamingEvent["result"];
 };
 
@@ -48,13 +49,20 @@ function getStreamPhase(eventName: string) {
   return STREAM_PHASES[eventName] ?? BRIEF_STREAM_PHASES[eventName];
 }
 
+function isTerminalInsightsEvent(event: InsmedStreamEvent) {
+  return (
+    (event.event === "insights_ready" || event.event === "brief_ready") &&
+    event.status === "complete"
+  );
+}
+
 function toStreamResult(
   event: InsmedStreamEvent
 ): NonNullable<StreamingEvent["result"]> {
   return {
-    sysoutput: event.sysoutput || "",
+    sysoutput: event.sysoutput || event.result?.sysoutput || "",
     conversation_id: event.conversation_id || event.result?.conversation_id || "",
-    message_id: event.message_id || event.result?.message_id,
+    message_id: event.result?.message_id || event.message_id,
     follow_up_questions:
       event.follow_up_questions || event.result?.follow_up_questions || [],
     visual_spec: event.visual_spec ||
@@ -67,7 +75,14 @@ function toStreamResult(
         y_label: "",
         is_visual: false,
       },
+    sql_query: event.sql_query || event.result?.sql_query,
   };
+}
+
+/** Prefer workflow_complete / insights_ready IDs — never workflow_start. */
+function resolveServerMessageId(event: InsmedStreamEvent): string | undefined {
+  if (event.event === "workflow_start") return undefined;
+  return event.result?.message_id || event.message_id;
 }
 
 export function useChatStream() {
@@ -93,6 +108,8 @@ export function useChatStream() {
       setLoading(true);
       const messageId = addStreamingMessage();
       let latestResult: NonNullable<StreamingEvent["result"]> | null = null;
+      let insightsComplete = false;
+      let sqlQuery: string | undefined;
       let didFinalize = false;
 
       try {
@@ -132,11 +149,17 @@ export function useChatStream() {
             try {
               const event = JSON.parse(data) as InsmedStreamEvent;
 
-              if (event.event === "insights_ready" || event.event === "brief_ready") {
+              if (event.event === "query_ready" && event.sql_query) {
+                sqlQuery = event.sql_query;
+              }
+
+              if (isTerminalInsightsEvent(event)) {
                 latestResult = toStreamResult(event);
+                insightsComplete = true;
               }
 
               if (event.event === "workflow_complete") {
+                const serverMessageId = resolveServerMessageId(event);
                 const baseResult = event.result
                   ? toStreamResult(event)
                   : latestResult ||
@@ -147,11 +170,14 @@ export function useChatStream() {
 
                 finalizeStreamingMessage(messageId, {
                   ...baseResult,
+                  message_id: serverMessageId ?? baseResult.message_id,
                   conversation_id:
                     event.conversation_id ??
                     baseResult.conversation_id ??
                     useChatStore.getState().activeChat?.conversationId ??
                     "",
+                  sql_query: sqlQuery ?? baseResult.sql_query,
+                  pin_ready: insightsComplete && Boolean(serverMessageId),
                 });
                 didFinalize = true;
                 continue;
@@ -173,7 +199,11 @@ export function useChatStream() {
         }
 
         if (latestResult && !didFinalize) {
-          finalizeStreamingMessage(messageId, latestResult);
+          finalizeStreamingMessage(messageId, {
+            ...latestResult,
+            sql_query: sqlQuery ?? latestResult.sql_query,
+            pin_ready: insightsComplete && Boolean(latestResult.message_id),
+          });
         }
       } catch (error) {
         console.error("Chat stream error:", error);
@@ -190,6 +220,7 @@ export function useChatStream() {
             y_label: "",
             is_visual: false,
           },
+          pin_ready: false,
         });
       } finally {
         setLoading(false);
