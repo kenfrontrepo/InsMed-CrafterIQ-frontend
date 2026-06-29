@@ -9,13 +9,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { NewChatIcon, ChevronRightIcon } from "@/components/icons";
+import { useNewChat } from "@/hooks/use-new-chat";
 import { useChatStore } from "@/stores/chat-store";
 
 // Memoized toggle buttons (best practice 5.5)
 export const ChatToggleButtons = memo(function ChatToggleButtons() {
   const sidebarOpen = useChatStore((state) => state.sidebarOpen);
   const toggleSidebar = useChatStore((state) => state.toggleSidebar);
-  const createNewChat = useChatStore((state) => state.createNewChat);
+  const startNewChat = useNewChat();
 
   return (
     <AnimatePresence>
@@ -47,7 +48,7 @@ export const ChatToggleButtons = memo(function ChatToggleButtons() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <motion.button
-                    onClick={createNewChat}
+                    onClick={startNewChat}
                     className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

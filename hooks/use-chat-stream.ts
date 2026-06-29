@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useChatStore,
   type StreamingEvent,
@@ -6,6 +7,10 @@ import {
 } from "@/stores/chat-store";
 import { useUserId } from "@/hooks/use-user-id";
 import { streamChat } from "@/lib/api/chatApi";
+import {
+  chatToHistoryConversation,
+  upsertConversationInHistoryCache,
+} from "@/lib/chat-history-utils";
 
 type InsmedStreamEvent = {
   event: string;
@@ -87,6 +92,7 @@ function resolveServerMessageId(event: InsmedStreamEvent): string | undefined {
 
 export function useChatStream() {
   const { userId } = useUserId();
+  const queryClient = useQueryClient();
   const addMessage = useChatStore((state) => state.addMessage);
   const addStreamingMessage = useChatStore((state) => state.addStreamingMessage);
   const updateStreamingMessage = useChatStore(
@@ -96,6 +102,16 @@ export function useChatStream() {
     (state) => state.finalizeStreamingMessage
   );
   const setLoading = useChatStore((state) => state.setLoading);
+
+  const syncHistoryAfterFinalize = useCallback(() => {
+    if (!userId) return;
+    const activeChat = useChatStore.getState().activeChat;
+    if (!activeChat) return;
+    const conversation = chatToHistoryConversation(activeChat);
+    if (conversation) {
+      upsertConversationInHistoryCache(queryClient, userId, conversation);
+    }
+  }, [queryClient, userId]);
 
   const sendMessage = useCallback(
     async (question: string, options?: { is_brief?: boolean }) => {
@@ -179,6 +195,7 @@ export function useChatStream() {
                   sql_query: sqlQuery ?? baseResult.sql_query,
                   pin_ready: insightsComplete && Boolean(serverMessageId),
                 });
+                syncHistoryAfterFinalize();
                 didFinalize = true;
                 continue;
               }
@@ -204,6 +221,7 @@ export function useChatStream() {
             sql_query: sqlQuery ?? latestResult.sql_query,
             pin_ready: insightsComplete && Boolean(latestResult.message_id),
           });
+          syncHistoryAfterFinalize();
         }
       } catch (error) {
         console.error("Chat stream error:", error);
@@ -232,6 +250,7 @@ export function useChatStream() {
       updateStreamingMessage,
       finalizeStreamingMessage,
       setLoading,
+      syncHistoryAfterFinalize,
       userId,
     ]
   );

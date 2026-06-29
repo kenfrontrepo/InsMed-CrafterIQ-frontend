@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PlusIcon, ChevronLeftIcon } from "@/components/icons";
+import { useNewChat } from "@/hooks/use-new-chat";
 import { ChatHistory } from "@/components/chat-history";
 import { useChatStore } from "@/stores/chat-store";
 
@@ -16,10 +17,10 @@ import { useChatStore } from "@/stores/chat-store";
 export const ChatSidebar = memo(function ChatSidebar() {
   const sidebarOpen = useChatStore((state) => state.sidebarOpen);
   const toggleSidebar = useChatStore((state) => state.toggleSidebar);
-  const createNewChat = useChatStore((state) => state.createNewChat);
+  const startNewChat = useNewChat();
 
   const handleNewChat = () => {
-    createNewChat();
+    startNewChat();
   };
 
   return (

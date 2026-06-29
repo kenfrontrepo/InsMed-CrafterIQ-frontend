@@ -4,8 +4,8 @@ import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useChatStore } from "@/stores/chat-store";
 import { useSidebarStore } from "@/stores/sidebar-store";
+import { useNewChat } from "@/hooks/use-new-chat";
 import { ChatHistory } from "@/components/chat-history";
 import { useUserId } from "@/hooks/use-user-id";
 import { fetchBoards, type Board } from "@/components/boards/types";
@@ -15,7 +15,7 @@ export function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const createNewChat = useChatStore((state) => state.createNewChat);
+  const startNewChat = useNewChat();
   const setOpen = useSidebarStore((s) => s.setOpen);
   const { userId } = useUserId();
   const [createBoardOpen, setCreateBoardOpen] = useState(false);
@@ -53,14 +53,9 @@ export function SidebarNav() {
   }, []);
 
   const handleNewChat = useCallback(() => {
-    createNewChat();
-    if (pathname.startsWith("/chat")) {
-      router.replace("/chat", { scroll: false });
-    } else {
-      router.push("/chat");
-    }
+    startNewChat();
     closeOnMobile();
-  }, [createNewChat, pathname, router, closeOnMobile]);
+  }, [startNewChat, closeOnMobile]);
 
   const handleCreateBoard = useCallback(() => {
     const onBoardsList = pathname === "/Boards" || pathname === "/Boards/";

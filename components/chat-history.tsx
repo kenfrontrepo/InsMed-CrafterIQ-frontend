@@ -22,6 +22,10 @@ import {
   type InsmedConversation,
   type InsmedChatHistoryResponse,
 } from "@/lib/api/chatApi";
+import {
+  mergeConversationsWithLocalChats,
+  sortConversationsNewestFirst,
+} from "@/lib/chat-history-utils";
 
 async function fetchChatHistory(userId: string): Promise<InsmedConversation[]> {
   const data: InsmedChatHistoryResponse = await apiFetchChatHistory(userId);
@@ -52,15 +56,6 @@ const DATE_GROUP_ORDER = [
   "This month",
   "Older",
 ] as const;
-
-function sortConversationsNewestFirst(
-  conversations: InsmedConversation[]
-): InsmedConversation[] {
-  return [...conversations].sort(
-    (a, b) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
-}
 
 function getDateGroup(dateStr: string): string {
   const date = new Date(dateStr);
@@ -219,13 +214,19 @@ export function ChatHistory() {
     (state) => state.loadConversationFromHistory
   );
   const activeChat = useChatStore((state) => state.activeChat);
+  const localChats = useChatStore((state) => state.chats);
 
-  const { data: conversations = [], isLoading } = useQuery({
+  const { data: apiConversations = [], isLoading } = useQuery({
     queryKey: ["chat-history", userId],
     queryFn: () => fetchChatHistory(userId!),
     enabled: !!userId,
     staleTime: 30_000,
   });
+
+  const conversations = useMemo(
+    () => mergeConversationsWithLocalChats(apiConversations, localChats),
+    [apiConversations, localChats]
+  );
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
