@@ -4,6 +4,8 @@ import { memo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { Components } from "react-markdown";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -51,6 +53,99 @@ function labelForValue(
   value: string
 ) {
   return options.find((o) => o.value === value)?.label ?? value;
+}
+
+/** Match playpower summary typography (explicit list styles — no typography plugin) */
+const summaryMarkdownComponents: Components = {
+  p: ({ children }) => (
+    <p className="text-sm text-gray-600 leading-relaxed my-1">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="my-1 space-y-0.5 text-sm text-gray-600 leading-relaxed list-disc pl-5">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="my-1 space-y-0.5 text-sm text-gray-600 leading-relaxed list-decimal pl-5">
+      {children}
+    </ol>
+  ),
+  li: ({ children }) => <li className="my-0.5 pl-0.5">{children}</li>,
+  strong: ({ children }) => (
+    <strong className="font-semibold text-gray-800">{children}</strong>
+  ),
+};
+
+/** Normalize summary string to markdown lists (fallback when summary_items absent) */
+function normalizeSummaryMarkdown(summary: string, style: Style): string {
+  const trimmed = summary.trim();
+  if (!trimmed) return summary;
+
+  if (style === "bullet_points") {
+    if (/^\s*[-*]\s/m.test(trimmed)) return trimmed;
+
+    const bulletLines = trimmed
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (
+      bulletLines.length > 1 &&
+      bulletLines.every((line) => /^•\s+/.test(line))
+    ) {
+      return bulletLines
+        .map((line) => `- ${line.replace(/^•\s+/, "")}`)
+        .join("\n");
+    }
+
+    if (trimmed.includes("•")) {
+      const items = trimmed
+        .split(/\s*•\s+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (items.length > 1) {
+        return items.map((item) => `- ${item}`).join("\n");
+      }
+    }
+  }
+
+  if (style === "numbered") {
+    if (/^\s*\d+\.\s/m.test(trimmed) && trimmed.includes("\n")) return trimmed;
+
+    const inlineParts = trimmed
+      .split(/\s*(?=\d+\.\s)/)
+      .map((s) => s.replace(/^\d+\.\s+/, "").trim())
+      .filter(Boolean);
+    if (inlineParts.length > 1) {
+      return inlineParts.map((item, i) => `${i + 1}. ${item}`).join("\n");
+    }
+  }
+
+  return summary;
+}
+
+/** Prefer structured summary_items from API, same rendering path as playpower markdown */
+function buildSummaryMarkdown(
+  data: BoardSummaryResponse | undefined,
+  style: Style
+): string {
+  if (!data?.summary && !data?.summary_items?.length) {
+    return "No summary available yet.";
+  }
+
+  const effectiveStyle = (data?.style as Style) || style;
+
+  if (data?.summary_items?.length) {
+    if (effectiveStyle === "bullet_points") {
+      return data.summary_items.map((item) => `- ${item}`).join("\n");
+    }
+    if (effectiveStyle === "numbered") {
+      return data.summary_items
+        .map((item, i) => `${i + 1}. ${item}`)
+        .join("\n");
+    }
+  }
+
+  return normalizeSummaryMarkdown(data?.summary ?? "", effectiveStyle);
 }
 
 async function fetchSummary(
@@ -263,8 +358,11 @@ export const SummarySection = memo(function SummarySection({
             prose-p:my-1 prose-ul:my-1 prose-li:my-0.5
             prose-headings:text-gray-800 prose-strong:text-gray-800"
         >
-          <ReactMarkdown>
-            {summaryData?.summary || "No summary available yet."}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={summaryMarkdownComponents}
+          >
+            {buildSummaryMarkdown(summaryData, appliedStyle)}
           </ReactMarkdown>
         </motion.div>
       )}

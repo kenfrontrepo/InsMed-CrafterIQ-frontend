@@ -26,7 +26,7 @@ import {
 async function fetchChatHistory(userId: string): Promise<InsmedConversation[]> {
   const data: InsmedChatHistoryResponse = await apiFetchChatHistory(userId);
   if (!data.status) return [];
-  return data.conversations ?? [];
+  return sortConversationsNewestFirst(data.conversations ?? []);
 }
 
 async function updateChatName(
@@ -45,6 +45,23 @@ async function deleteChat(
 }
 
 /** Group conversations by relative date */
+const DATE_GROUP_ORDER = [
+  "Today",
+  "Yesterday",
+  "This week",
+  "This month",
+  "Older",
+] as const;
+
+function sortConversationsNewestFirst(
+  conversations: InsmedConversation[]
+): InsmedConversation[] {
+  return [...conversations].sort(
+    (a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
+}
+
 function getDateGroup(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -220,16 +237,25 @@ export function ChatHistory() {
   const [conversationToDelete, setConversationToDelete] = useState<InsmedConversation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Group by date
+  // Group by date (newest first within each group)
   const grouped = useMemo(() => {
+    const sorted = sortConversationsNewestFirst(conversations);
     const groups: Record<string, InsmedConversation[]> = {};
-    for (const conv of conversations) {
+    for (const conv of sorted) {
       const group = getDateGroup(conv.updated_at);
       if (!groups[group]) groups[group] = [];
       groups[group].push(conv);
     }
     return groups;
   }, [conversations]);
+
+  const orderedGroups = useMemo(
+    () =>
+      DATE_GROUP_ORDER.filter((label) => grouped[label]?.length).map(
+        (label) => [label, grouped[label]!] as const
+      ),
+    [grouped]
+  );
 
   const handleSelect = (conv: InsmedConversation) => {
     loadConversationFromHistory(conv.id, conv.title, userId!);
@@ -344,7 +370,7 @@ export function ChatHistory() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
-        {Object.entries(grouped).map(([group, convs]) => (
+        {orderedGroups.map(([group, convs]) => (
           <div key={group}>
             <div className="space-y-px">
               {convs.map((conv) => {

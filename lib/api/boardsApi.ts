@@ -144,6 +144,7 @@ export interface BoardSummaryResponse {
   board_id: string;
   board_name: string;
   summary: string;
+  summary_items?: string[];
   tone: string;
   detail_level: string;
   style: string;
