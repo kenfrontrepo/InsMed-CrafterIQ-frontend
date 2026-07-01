@@ -20,15 +20,15 @@ const SAMPLE_QUESTIONS: DynCard[] = [
   },
   {
     meta: "Budget exposure",
-    question: "What is the total budget by business unit for all in-progress projects, and how does it compare to closed ones?",
-    highlights: ["total budget", "business unit", "in-progress", "closed"],
-    prompt: "What is the total budget by business unit for all in-progress projects, and how does it compare to closed ones?",
+    question: "What is the total budget by business unit for all closed projects?",
+    highlights: ["total budget", "business unit", "closed projects"],
+    prompt: "What is the total budget by business unit for all closed projects?",
   },
   {
     meta: "Pipeline conversion funnel",
-    question: "How many ideas by business unit have converted to projects versus still pending approval?",
-    highlights: ["ideas", "business unit", "converted", "pending approval"],
-    prompt: "How many ideas by business unit have converted to projects versus still pending approval?",
+    question: "How many ideas are still pending approval by business unit?",
+    highlights: ["ideas", "pending approval", "business unit"],
+    prompt: "How many ideas are still pending approval by business unit?",
   },
   {
     meta: "Top projects by budget",
