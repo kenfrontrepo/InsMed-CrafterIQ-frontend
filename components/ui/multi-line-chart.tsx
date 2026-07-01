@@ -4,6 +4,12 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  configureChartNumberFormatter,
+  extractSeriesValues,
+  formatChartValue,
+} from "@/components/ui/chart-value-axis";
 
 const COLORS = [
   "#7BB5D8",
@@ -14,14 +20,6 @@ const COLORS = [
   "#BA6DD6",
   "#CD6FC9",
 ];
-
-function formatLargeNumber(value: number): string {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toFixed(0);
-}
 
 interface MultiLineChartData {
   category: string;
@@ -79,14 +77,7 @@ export function MultiLineChart({
     const root = am5.Root.new(chartRef.current);
     root._logo?.dispose();
     root.setThemes([am5themes_Animated.new(root)]);
-
-    // Configure number formatter for K/M/B
-    root.numberFormatter.set("bigNumberPrefixes", [
-      { number: 1e3, suffix: "K" },
-      { number: 1e6, suffix: "M" },
-      { number: 1e9, suffix: "B" },
-      { number: 1e12, suffix: "T" },
-    ]);
+    configureChartNumberFormatter(root);
 
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
@@ -144,9 +135,18 @@ export function MultiLineChart({
     // Y Axis
     const yAxis = chart.yAxes.push(
       am5xy.ValueAxis.new(root, {
+        min: 0,
         renderer: am5xy.AxisRendererY.new(root, { strokeOpacity: 0 }),
-        numberFormat: "#.#a",
       })
+    );
+
+    applyValueAxisFormat(
+      yAxis,
+      extractSeriesValues(
+        data,
+        seriesConfig.map((s) => s.field)
+      ),
+      yLabel
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -194,7 +194,7 @@ export function MultiLineChart({
         const dataItem = target.dataItem as am5.DataItem<am5xy.ILineSeriesDataItem> | undefined;
         if (dataItem) {
           const val = dataItem.get("valueY") as number;
-          return `${config.name}: ${formatLargeNumber(val)}`;
+          return `${config.name}: ${formatChartValue(val, yLabel)}`;
         }
         return `${config.name}: {valueY}`;
       });

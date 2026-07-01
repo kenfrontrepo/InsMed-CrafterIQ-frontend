@@ -6,6 +6,7 @@ import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import {
   applyValueAxisFormat,
+  configureChartNumberFormatter,
   extractSeriesValues,
 } from "@/components/ui/chart-value-axis";
 
@@ -80,14 +81,7 @@ export function StackedBarChart({
     const root = am5.Root.new(chartRef.current);
     root._logo?.dispose();
     root.setThemes([am5themes_Animated.new(root)]);
-
-    // Configure number formatter for K/M/B
-    root.numberFormatter.set("bigNumberPrefixes", [
-      { number: 1e3, suffix: "K" },
-      { number: 1e6, suffix: "M" },
-      { number: 1e9, suffix: "B" },
-      { number: 1e12, suffix: "T" },
-    ]);
+    configureChartNumberFormatter(root);
 
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {

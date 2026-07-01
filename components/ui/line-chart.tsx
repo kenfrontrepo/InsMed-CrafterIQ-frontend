@@ -4,6 +4,11 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  configureChartNumberFormatter,
+  formatChartValue,
+} from "@/components/ui/chart-value-axis";
 
 const COLORS = [
   "#7BB5D8",
@@ -16,13 +21,6 @@ const COLORS = [
 interface LineChartData {
   category: string;
   value: number;
-}
-
-function formatLargeNumber(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return value.toFixed(1);
 }
 
 interface LineChartProps {
@@ -62,14 +60,7 @@ export function LineChart({
     const root = am5.Root.new(chartRef.current);
     root._logo?.dispose();
     root.setThemes([am5themes_Animated.new(root)]);
-
-    // Number formatter
-    root.numberFormatter.set("bigNumberPrefixes", [
-      { number: 1e3, suffix: "K" },
-      { number: 1e6, suffix: "M" },
-      { number: 1e9, suffix: "B" },
-      { number: 1e12, suffix: "T" },
-    ]);
+    configureChartNumberFormatter(root);
 
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
@@ -111,9 +102,15 @@ export function LineChart({
     // Y Axis
     const yAxis = chart.yAxes.push(
       am5xy.ValueAxis.new(root, {
+        min: 0,
         renderer: am5xy.AxisRendererY.new(root, { strokeOpacity: 0 }),
-        numberFormat: "#.#a",
       })
+    );
+
+    applyValueAxisFormat(
+      yAxis,
+      data.map((item) => item.value),
+      yLabel
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -174,7 +171,7 @@ export function LineChart({
         const cat = dataItem.get("categoryX" as any) as string;
         const val = dataItem.get("valueY" as any) as number;
         if (cat && val !== undefined) {
-          return `${cat}: ${formatLargeNumber(val)}`;
+          return `${cat}: ${formatChartValue(val, yLabel)}`;
         }
       }
       return _text ?? "";

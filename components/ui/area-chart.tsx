@@ -4,6 +4,11 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  configureChartNumberFormatter,
+  formatChartValue,
+} from "@/components/ui/chart-value-axis";
 
 const COLORS = [
   "#7BB5D8",
@@ -12,15 +17,6 @@ const COLORS = [
   "#7D69D5",
   "#9B6BD5",
 ];
-
-function formatLargeNumber(value: number): string {
-  const abs = Math.abs(value);
-  if (abs >= 1e12) return (value / 1e12).toFixed(1).replace(/\.0$/, "") + "T";
-  if (abs >= 1e9) return (value / 1e9).toFixed(1).replace(/\.0$/, "") + "B";
-  if (abs >= 1e6) return (value / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
-  if (abs >= 1e3) return (value / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
-  return value.toLocaleString();
-}
 
 interface AreaChartData {
   category: string;
@@ -64,14 +60,7 @@ export function AreaChart({
     const root = am5.Root.new(chartRef.current);
     root._logo?.dispose();
     root.setThemes([am5themes_Animated.new(root)]);
-
-    // Configure number formatter for compact axis labels
-    root.numberFormatter.set("bigNumberPrefixes", [
-      { number: 1e3, suffix: "K" },
-      { number: 1e6, suffix: "M" },
-      { number: 1e9, suffix: "B" },
-      { number: 1e12, suffix: "T" },
-    ]);
+    configureChartNumberFormatter(root);
 
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
@@ -127,9 +116,15 @@ export function AreaChart({
     // Y Axis
     const yAxis = chart.yAxes.push(
       am5xy.ValueAxis.new(root, {
+        min: 0,
         renderer: am5xy.AxisRendererY.new(root, { strokeOpacity: 0 }),
-        numberFormat: "#.#a",
       })
+    );
+
+    applyValueAxisFormat(
+      yAxis,
+      data.map((item) => item.value),
+      yLabel
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -180,7 +175,7 @@ export function AreaChart({
         const val = (dataItem as am5.DataItem<Record<string, unknown>>).get(
           "valueY" as never
         ) as number;
-        return `${cat}: ${formatLargeNumber(val)}`;
+        return `${cat}: ${formatChartValue(val, yLabel)}`;
       }
       return "{categoryX}: {valueY}";
     });

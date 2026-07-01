@@ -4,6 +4,10 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  configureChartNumberFormatter,
+} from "@/components/ui/chart-value-axis";
 
 const COLORS = [
   "#7BB5D8",
@@ -55,6 +59,7 @@ export function BubbleChart({
     const root = am5.Root.new(chartRef.current);
     root._logo?.dispose();
     root.setThemes([am5themes_Animated.new(root)]);
+    configureChartNumberFormatter(root);
 
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
@@ -90,12 +95,24 @@ export function BubbleChart({
       strokeOpacity: 0.5,
     });
 
+    applyValueAxisFormat(
+      xAxis,
+      data.map((item) => item.x),
+      xLabel
+    );
+
     // Y Axis
     const yAxis = chart.yAxes.push(
       am5xy.ValueAxis.new(root, {
         renderer: am5xy.AxisRendererY.new(root, { strokeOpacity: 0 }),
         tooltip: am5.Tooltip.new(root, {}),
       })
+    );
+
+    applyValueAxisFormat(
+      yAxis,
+      data.map((item) => item.y),
+      yLabel
     );
 
     yAxis.get("renderer").labels.template.setAll({

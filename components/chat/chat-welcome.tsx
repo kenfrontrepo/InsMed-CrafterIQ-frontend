@@ -14,9 +14,9 @@ interface DynCard {
 const SAMPLE_QUESTIONS: DynCard[] = [
   {
     meta: "Risk / Health scan",
-    question: "Which business units have the most off-track or on-hold projects?",
-    highlights: ["business units", "off-track", "on-hold"],
-    prompt: "Which business units have the most off-track or on-hold projects?",
+    question: "Which business units have the most on-hold projects?",
+    highlights: ["business units", "on-hold"],
+    prompt: "Which business units have the most on-hold projects?",
   },
   {
     meta: "Budget exposure",

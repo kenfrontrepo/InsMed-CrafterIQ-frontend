@@ -6,6 +6,7 @@ import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import {
   applyValueAxisFormat,
+  configureChartNumberFormatter,
   formatChartValue,
 } from "@/components/ui/chart-value-axis";
 
@@ -62,14 +63,7 @@ export function BarChart({
     const root = am5.Root.new(chartRef.current);
     root._logo?.dispose();
     root.setThemes([am5themes_Animated.new(root)]);
-
-    // Number formatter: K / M / B / T
-    root.numberFormatter.set("bigNumberPrefixes", [
-      { number: 1e3, suffix: "K" },
-      { number: 1e6, suffix: "M" },
-      { number: 1e9, suffix: "B" },
-      { number: 1e12, suffix: "T" },
-    ]);
+    configureChartNumberFormatter(root);
 
     const maxLabelLen = data.reduce(
       (max, item) => Math.max(max, item.category.length),

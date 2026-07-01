@@ -4,6 +4,10 @@ import { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import {
+  applyValueAxisFormat,
+  configureChartNumberFormatter,
+} from "@/components/ui/chart-value-axis";
 
 interface WaterfallChartData {
   category: string;
@@ -47,6 +51,7 @@ export function WaterfallChart({
     const root = am5.Root.new(chartRef.current);
     root._logo?.dispose();
     root.setThemes([am5themes_Animated.new(root)]);
+    configureChartNumberFormatter(root);
 
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
@@ -109,6 +114,12 @@ export function WaterfallChart({
       am5xy.ValueAxis.new(root, {
         renderer: am5xy.AxisRendererY.new(root, { strokeOpacity: 0 }),
       })
+    );
+
+    applyValueAxisFormat(
+      yAxis,
+      processedData.flatMap((item) => [item.open, item.close, item.value]),
+      undefined
     );
 
     yAxis.get("renderer").labels.template.setAll({

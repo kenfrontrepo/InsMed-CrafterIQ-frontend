@@ -8,6 +8,7 @@ import {
   useImperativeHandle,
   type KeyboardEvent,
   type ChangeEvent,
+  useMemo,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchFilters } from "@/lib/api/filtersApi";
@@ -80,9 +81,11 @@ export function ChatInput({
   const [mentionResults, setMentionResults] = useState<MentionResult[]>([]);
   const [mentionLoading, setMentionLoading] = useState(false);
   const [mentionHighlight, setMentionHighlight] = useState(0);
+  const [activeCategoryKey, setActiveCategoryKey] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mentionPopoverRef = useRef<HTMLDivElement>(null);
+  const mentionScrollRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resizeTextarea = useCallback(() => {
@@ -319,26 +322,93 @@ export function ChatInput({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [mentionOpen]);
 
-  const groupedResults = mentionResults.reduce<
-    Record<string, { display: string; items: MentionResult[] }>
-  >((acc, r) => {
-    if (!acc[r.categoryKey]) {
-      acc[r.categoryKey] = { display: r.categoryDisplay, items: [] };
-    }
-    acc[r.categoryKey].items.push(r);
-    return acc;
-  }, {});
+  const groupedResults = useMemo(
+    () =>
+      mentionResults.reduce<
+        Record<string, { display: string; items: MentionResult[] }>
+      >((acc, r) => {
+        if (!acc[r.categoryKey]) {
+          acc[r.categoryKey] = { display: r.categoryDisplay, items: [] };
+        }
+        acc[r.categoryKey].items.push(r);
+        return acc;
+      }, {}),
+    [mentionResults]
+  );
+
+  const categoryKeys = useMemo(
+    () => Object.keys(groupedResults),
+    [groupedResults]
+  );
 
   let flatIdx = -1;
 
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const scrollToCategory = useCallback((categoryKey: string) => {
-    const element = categoryRefs.current[categoryKey];
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const updateActiveCategoryFromScroll = useCallback(() => {
+    const container = mentionScrollRef.current;
+    if (!container || categoryKeys.length === 0) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const atBottom = scrollHeight - scrollTop - clientHeight <= 12;
+
+    if (atBottom) {
+      setActiveCategoryKey(categoryKeys[categoryKeys.length - 1]);
+      return;
     }
-  }, []);
+
+    const activationLine = container.getBoundingClientRect().top + 44;
+    let active = categoryKeys[0];
+
+    for (const key of categoryKeys) {
+      const el = categoryRefs.current[key];
+      if (!el) continue;
+      if (el.getBoundingClientRect().top <= activationLine) {
+        active = key;
+      }
+    }
+
+    setActiveCategoryKey(active);
+  }, [categoryKeys]);
+
+  useEffect(() => {
+    if (!mentionOpen || categoryKeys.length === 0) {
+      setActiveCategoryKey(null);
+      return;
+    }
+
+    setActiveCategoryKey(categoryKeys[0]);
+    const container = mentionScrollRef.current;
+    if (!container) return;
+
+    const onScroll = () => updateActiveCategoryFromScroll();
+    container.addEventListener("scroll", onScroll, { passive: true });
+    requestAnimationFrame(updateActiveCategoryFromScroll);
+
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [mentionOpen, categoryKeys, updateActiveCategoryFromScroll]);
+
+  const scrollToCategory = useCallback(
+    (categoryKey: string) => {
+      setActiveCategoryKey(categoryKey);
+      const container = mentionScrollRef.current;
+      const element = categoryRefs.current[categoryKey];
+      if (!container || !element) return;
+
+      const isLast = categoryKey === categoryKeys[categoryKeys.length - 1];
+      if (isLast) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: "smooth",
+        });
+        return;
+      }
+
+      const targetTop = element.offsetTop;
+      container.scrollTo({ top: targetTop, behavior: "smooth" });
+    },
+    [categoryKeys]
+  );
 
   return (
     <div className="relative w-full">
@@ -410,23 +480,36 @@ export function ChatInput({
             ) : (
               <>
                 <div className="flex items-center gap-1 px-3 py-2.5 border-b border-border-subtle bg-card">
-                  {Object.keys(groupedResults).map((categoryKey) => {
+                  {categoryKeys.map((categoryKey) => {
                     const IconComponent = CATEGORY_ICONS[categoryKey] ?? Layers;
+                    const isActive = categoryKey === activeCategoryKey;
                     return (
                       <button
                         key={categoryKey}
                         type="button"
                         onClick={() => scrollToCategory(categoryKey)}
-                        className="w-10 h-10 rounded-full hover:bg-hover transition-all flex items-center justify-center group"
+                        className={`w-10 h-10 rounded-full transition-all flex items-center justify-center group ${
+                          isActive ? "bg-text-primary/10" : "hover:bg-hover"
+                        }`}
                         title={groupedResults[categoryKey].display}
+                        aria-current={isActive ? "true" : undefined}
                       >
-                        <IconComponent className="w-5 h-5 text-text-secondary group-hover:text-text-primary transition-colors" />
+                        <IconComponent
+                          className={`w-5 h-5 transition-colors ${
+                            isActive
+                              ? "text-text-primary"
+                              : "text-text-secondary group-hover:text-text-primary"
+                          }`}
+                        />
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="max-h-[320px] overflow-y-auto scrollbar-hide">
+                <div
+                  ref={mentionScrollRef}
+                  className="max-h-[320px] overflow-y-auto scrollbar-hide"
+                >
                   {Object.entries(groupedResults).map(([key, group]) => {
                     const IconComponent = CATEGORY_ICONS[key] ?? Layers;
                     return (
