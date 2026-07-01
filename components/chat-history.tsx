@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useUserId } from "@/hooks/use-user-id";
 import {
   fetchChatHistory as apiFetchChatHistory,
@@ -25,20 +24,13 @@ import {
 import {
   mergeConversationsWithLocalChats,
   sortConversationsNewestFirst,
+  upsertConversationInHistoryCache,
 } from "@/lib/chat-history-utils";
 
 async function fetchChatHistory(userId: string): Promise<InsmedConversation[]> {
   const data: InsmedChatHistoryResponse = await apiFetchChatHistory(userId);
   if (!data.status) return [];
   return sortConversationsNewestFirst(data.conversations ?? []);
-}
-
-async function updateChatName(
-  conversationId: string,
-  userId: string,
-  title: string
-): Promise<void> {
-  await updateChatTitle(conversationId, userId, title);
 }
 
 async function deleteChat(
@@ -86,10 +78,13 @@ function EditChatDialog({
 }) {
   const [title, setTitle] = useState("");
 
-  // Reset form when dialog opens with new conversation
-  if (isOpen && conversation && title === "" && conversation.title !== "") {
-    setTitle(conversation.title);
-  }
+  useEffect(() => {
+    if (isOpen && conversation) {
+      setTitle(conversation.title);
+    } else if (!isOpen) {
+      setTitle("");
+    }
+  }, [isOpen, conversation?.id, conversation?.title]);
 
   const handleClose = () => {
     setTitle("");
@@ -122,15 +117,14 @@ function EditChatDialog({
           </button>
         </div>
 
-        <div className="mb-5">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter chat name"
-            className="w-full"
-            autoFocus
-          />
-        </div>
+        <textarea
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter chat name"
+          rows={3}
+          autoFocus
+          className="text-sm font-medium text-gray-800 bg-gray-50 p-2.5 rounded-lg mb-5 w-full border border-transparent outline-none resize-none leading-snug focus:border-blue-200 focus:ring-2 focus:ring-blue-500/20"
+        />
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={handleClose} disabled={isSaving}>
@@ -213,6 +207,7 @@ export function ChatHistory() {
   const loadConversationFromHistory = useChatStore(
     (state) => state.loadConversationFromHistory
   );
+  const renameConversation = useChatStore((state) => state.renameConversation);
   const activeChat = useChatStore((state) => state.activeChat);
   const localChats = useChatStore((state) => state.chats);
 
@@ -275,10 +270,23 @@ export function ChatHistory() {
   const handleEditSave = useCallback(
     async (title: string) => {
       if (!conversationToEdit) return;
+      const trimmed = title.trim();
+      if (!trimmed) return;
+
       setIsSaving(true);
       try {
-        await updateChatName(conversationToEdit.id, userId!, title);
-        queryClient.invalidateQueries({ queryKey: ["chat-history"] });
+        const response = await updateChatTitle(
+          conversationToEdit.id,
+          userId!,
+          trimmed
+        );
+        renameConversation(conversationToEdit.id, trimmed);
+        upsertConversationInHistoryCache(queryClient, userId!, {
+          id: response.id,
+          title: response.title,
+          created_at: response.created_at,
+          updated_at: response.updated_at,
+        });
         setEditDialogOpen(false);
         setConversationToEdit(null);
       } catch (err) {
@@ -287,7 +295,7 @@ export function ChatHistory() {
         setIsSaving(false);
       }
     },
-    [conversationToEdit, queryClient, userId]
+    [conversationToEdit, queryClient, renameConversation, userId]
   );
 
   // Handle delete click

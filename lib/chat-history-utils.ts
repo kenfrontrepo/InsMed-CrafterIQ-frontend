@@ -55,7 +55,11 @@ export function mergeConversationsWithLocalChats(
     ) {
       merged.set(localConv.id, {
         ...localConv,
-        title: existing?.title ?? localConv.title,
+        // Prefer renamed local title when it differs from the API snapshot
+        title:
+          localConv.title !== existing?.title && localConv.title !== "New Chat"
+            ? localConv.title
+            : (existing?.title ?? localConv.title),
       });
     }
   }

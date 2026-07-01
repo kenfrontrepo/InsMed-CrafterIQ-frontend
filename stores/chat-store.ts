@@ -116,6 +116,7 @@ interface ChatState {
   setActiveChat: (chatId: string) => void;
   /** Load a conversation from history — fetches messages from API and populates the chat */
   loadConversationFromHistory: (conversationId: string, title: string, userId: string) => Promise<void>;
+  renameConversation: (conversationId: string, title: string) => void;
   addMessage: (message: Omit<Message, "id" | "timestamp">) => void;
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
   setLoading: (loading: boolean) => void;
@@ -253,6 +254,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.error("Failed to load conversation:", error);
       set({ isLoading: false });
     }
+  },
+
+  renameConversation: (conversationId, title) => {
+    set((state) => {
+      const chats = state.chats.map((chat) =>
+        chat.conversationId === conversationId ? { ...chat, title } : chat
+      );
+      const activeChat =
+        state.activeChat?.conversationId === conversationId
+          ? { ...state.activeChat, title }
+          : state.activeChat;
+      return { chats, activeChat };
+    });
   },
 
   addMessage: (message) => {
