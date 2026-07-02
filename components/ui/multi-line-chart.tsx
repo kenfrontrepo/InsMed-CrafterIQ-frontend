@@ -194,7 +194,7 @@ export function MultiLineChart({
         const dataItem = target.dataItem as am5.DataItem<am5xy.ILineSeriesDataItem> | undefined;
         if (dataItem) {
           const val = dataItem.get("valueY") as number;
-          return `${config.name}: ${formatChartValue(val, yLabel)}`;
+          return `${config.name}: ${formatChartValue(val, yLabel, config.name)}`;
         }
         return `${config.name}: {valueY}`;
       });

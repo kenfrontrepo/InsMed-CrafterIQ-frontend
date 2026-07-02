@@ -14,10 +14,27 @@ function allValuesAreIntegers(values: number[]): boolean {
   );
 }
 
+function labelContext(axisLabel?: string, seriesLabel?: string): string {
+  return [axisLabel, seriesLabel].filter(Boolean).join(" ").toLowerCase();
+}
+
+/** Counts, percentages, and other non-currency metrics — never prefix with $. */
+export function isCountLikeLabel(
+  axisLabel?: string,
+  seriesLabel?: string
+): boolean {
+  const label = labelContext(axisLabel, seriesLabel);
+  if (!label) return false;
+  return /\b(count|number|#|quantity|units|projects?|items|ideas?|employees|people|headcount|quarter|year|status|percent|%|rate|ratio|off track)\b/.test(
+    label
+  );
+}
+
 /** Use whole-number ticks for counts and small integer series (e.g. quarters 1–4). */
 export function shouldUseIntegerValueAxis(
   values: number[],
-  axisLabel?: string
+  axisLabel?: string,
+  seriesLabel?: string
 ): boolean {
   if (values.length === 0) return false;
 
@@ -25,13 +42,9 @@ export function shouldUseIntegerValueAxis(
   if (!allIntegers) return false;
 
   const max = Math.max(...values, 0);
-  const label = (axisLabel ?? "").toLowerCase();
-  const countLikeLabel =
-    /\b(count|number|#|quantity|units|projects?|items|total|employees|people|headcount|quarter|year|status)\b/.test(
-      label
-    );
+  if (isCountLikeLabel(axisLabel, seriesLabel)) return true;
 
-  return countLikeLabel || max <= 500;
+  return max <= 500;
 }
 
 function bindPlainAxisLabels(
@@ -113,9 +126,13 @@ export function extractSeriesValues(
   return values;
 }
 
-export function formatChartValue(value: number, axisLabel?: string): string {
+export function formatChartValue(
+  value: number,
+  axisLabel?: string,
+  seriesLabel?: string
+): string {
   if (!Number.isFinite(value)) return "";
-  if (shouldUseIntegerValueAxis([value], axisLabel)) {
+  if (shouldUseIntegerValueAxis([value], axisLabel, seriesLabel)) {
     return String(Math.round(value));
   }
   if (allValuesAreIntegers([value])) {

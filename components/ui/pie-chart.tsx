@@ -25,10 +25,6 @@ const COLORS = [
 const LIGHT_FONT = "#333942";
 const MIN_LABEL_PERCENT = 4;
 
-function formatLargeNumber(value: number): string {
-  return formatChartValue(value);
-}
-
 interface PieChartData {
   category: string;
   value: number;
@@ -40,6 +36,8 @@ interface PieChartProps {
   className?: string;
   showLegend?: boolean;
   showLabels?: boolean;
+  /** Chart title or y-axis label — used to format count values without $ */
+  valueLabel?: string;
 }
 
 const defaultData: PieChartData[] = [
@@ -56,6 +54,7 @@ export function PieChart({
   className,
   showLegend = true,
   showLabels = true,
+  valueLabel,
 }: PieChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -113,8 +112,8 @@ export function PieChart({
         const percent = target.dataItem?.get("valuePercentTotal");
 
         if (value && category && percent !== undefined) {
-          const fv = formatLargeNumber(value);
-          return `[bold {fill}]●[/] ${category}: $${fv} (${percent.toFixed(1)}%)`;
+          const fv = formatChartValue(value, valueLabel);
+          return `[bold {fill}]●[/] ${category}: ${fv} (${percent.toFixed(1)}%)`;
         }
         return _text;
       }
@@ -144,7 +143,7 @@ export function PieChart({
           if (value && percent !== undefined && category) {
             if (percent < MIN_LABEL_PERCENT) return "";
 
-            const fv = formatLargeNumber(value);
+            const fv = formatChartValue(value, valueLabel);
 
             let cat = category as string;
             if (cat.length > 20) {
@@ -152,7 +151,7 @@ export function PieChart({
               cat = `${cat.substring(0, mid)}\n[normal {fill}]${cat.substring(mid)}`;
             }
 
-            return `[normal {fill}]${cat}\n[normal {fill}]$${fv} (${percent.toFixed(1)}%)[/]`;
+            return `[normal {fill}]${cat}\n[normal {fill}]${fv} (${percent.toFixed(1)}%)[/]`;
           }
           return _text;
         }
@@ -195,7 +194,7 @@ export function PieChart({
     series.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, showLegend, showLabels]);
+  }, [data, showLegend, showLabels, valueLabel]);
 
   return (
     <div

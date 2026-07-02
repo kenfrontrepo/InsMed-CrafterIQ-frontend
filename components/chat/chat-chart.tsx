@@ -403,7 +403,13 @@ export const ChatChart = memo(function ChatChart({
         return <ComboChart data={comboData} height={height} showLegend />;
 
       case "pie":
-        return <PieChart data={chartData as any[]} height={height} />;
+        return (
+          <PieChart
+            data={chartData as any[]}
+            height={height}
+            valueLabel={visualSpec.y_label || visualSpec.title}
+          />
+        );
 
       case "donut":
         const donutData = (chartData as any[]).map((d: any) => ({
