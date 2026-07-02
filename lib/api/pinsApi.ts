@@ -106,6 +106,8 @@ export interface PinDetail extends PinListItem {
   visual_spec?: Record<string, unknown> | null;
   sql_query?: string | null;
   user_question?: string | null;
+  /** Insight markdown (sysoutput) — shown below chart in expand/details */
+  content?: string | null;
 }
 
 export interface PinDetailResponse {
@@ -207,6 +209,21 @@ export async function bulkAssignPins(
   return res.data;
 }
 
+/** Map API field aliases to `content` for expand/details markdown */
+export function normalizePinDetail(pin: PinDetail): PinDetail {
+  const raw = pin as PinDetail & Record<string, unknown>;
+  const content =
+    pin.content ??
+    (typeof raw.sysoutput === "string" ? raw.sysoutput : null) ??
+    (typeof raw.response_content === "string" ? raw.response_content : null) ??
+    (typeof raw.markdown === "string" ? raw.markdown : null);
+
+  return {
+    ...pin,
+    content: content?.trim() || null,
+  };
+}
+
 export async function fetchPinDetails(
   pinId: string,
   userId: string
@@ -214,7 +231,11 @@ export async function fetchPinDetails(
   const res = await api.get<PinDetailResponse>(
     `/insmed/pins/getpindetails/${pinId}/${userId}`
   );
-  return res.data;
+  const data = res.data;
+  if (data.pin) {
+    data.pin = normalizePinDetail(data.pin);
+  }
+  return data;
 }
 
 export async function refinePin(

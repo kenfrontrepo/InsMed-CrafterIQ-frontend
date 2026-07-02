@@ -418,6 +418,7 @@ export const PinCard = memo(function PinCard({
                 key={pin.id}
                 pin={boardPinToPinItemStub(pin)}
                 onClose={() => setShowPinDetails(false)}
+                large
               />
             )}
           </AnimatePresence>,

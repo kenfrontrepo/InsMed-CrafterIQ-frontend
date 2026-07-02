@@ -36,10 +36,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { LayoutGrid } from "lucide-react";
-import { shouldAttachVisualSpec, type VisualSpec } from "@/stores/chat-store";
+import type { VisualSpec } from "@/stores/chat-store";
 import type { PinItem } from "./types";
 import { getRelativeTime, getTypeConfig } from "./utils";
 import { fetchPinDetails } from "@/lib/api/pinsApi";
+import { fetchConversationDetail } from "@/lib/api/chatApi";
 import { useUserId } from "@/hooks/use-user-id";
 import { markdownComponents } from "../chat/markdown-components";
 
@@ -58,9 +59,15 @@ const ChatChart = dynamic(
 export function PinDetailsDialog({
   pin: pinItem,
   onClose,
+  fallbackContent,
+  large = false,
 }: {
   pin: PinItem;
   onClose: () => void;
+  /** Shown when pin details API omits markdown (e.g. legacy pins) */
+  fallbackContent?: string | null;
+  /** Board expand — wider modal like playpower boards */
+  large?: boolean;
 }) {
   const { userId } = useUserId();
 
@@ -71,6 +78,39 @@ export function PinDetailsDialog({
   });
 
   const pin = data?.pin;
+
+  const needsMessageFallback =
+    !!pin &&
+    !pin.content &&
+    !fallbackContent?.trim() &&
+    !!pin.message_id &&
+    !!pin.conversation_id;
+
+  const { data: messageContent, isLoading: isLoadingMessage } = useQuery({
+    queryKey: [
+      "pin-message-content",
+      pin?.message_id,
+      pin?.conversation_id,
+      userId,
+    ],
+    queryFn: async () => {
+      const detail = await fetchConversationDetail(
+        pin!.conversation_id,
+        userId!
+      );
+      const msg = detail.messages?.find(
+        (m) => m.id === pin!.message_id && m.role !== "user"
+      );
+      return msg?.content?.trim() || null;
+    },
+    enabled: !!userId && needsMessageFallback,
+  });
+
+  const descriptionContent =
+    pin?.content?.trim() ||
+    fallbackContent?.trim() ||
+    messageContent?.trim() ||
+    null;
 
   return (
     <motion.div
@@ -86,7 +126,12 @@ export function PinDetailsDialog({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+        className={
+          large
+            ? "bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            : "bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+        }
+        style={large ? { width: "80vw" } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -119,17 +164,36 @@ export function PinDetailsDialog({
 
           {!isLoading && !isError && pin && (
             <>
-              {/* Visual spec chart */}
+              {/* Visual spec chart (playpower expand/details) */}
               {pin.visual_spec &&
-                shouldAttachVisualSpec(pin.visual_spec as unknown as VisualSpec) && (
+                (pin.visual_spec as { is_visual?: boolean }).is_visual !==
+                  false &&
+                (pin.visual_spec as { chart_type?: string }).chart_type && (
                   <div className="bg-gray-50 rounded-xl p-4">
-                    <ChatChart visualSpec={pin.visual_spec as unknown as VisualSpec} bare height={350} />
+                    <ChatChart
+                      visualSpec={pin.visual_spec as unknown as VisualSpec}
+                      bare
+                      height={large ? 450 : 350}
+                    />
                   </div>
                 )}
 
-              {pin.user_question && (
-                <div className="prose prose-sm max-w-none text-gray-700">
-                  <p className="text-sm text-gray-600">{pin.user_question}</p>
+              {/* Insight markdown below chart */}
+              {isLoadingMessage && !descriptionContent && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading description…
+                </div>
+              )}
+
+              {descriptionContent && (
+                <div className="prose prose-sm max-w-none text-gray-700 prose-headings:text-gray-800 prose-strong:text-gray-800 prose-table:text-sm">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={markdownComponents}
+                  >
+                    {descriptionContent}
+                  </ReactMarkdown>
                 </div>
               )}
             </>
