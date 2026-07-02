@@ -17,9 +17,16 @@ import { displayShareUser } from "@/lib/user-display";
 interface PublishedBoardCardProps {
   board: PublishedBoardItem;
   index: number;
+  ownerDisplayName?: string | null;
+  ownerNameLoading?: boolean;
 }
 
-export function PublishedBoardCard({ board, index }: PublishedBoardCardProps) {
+export function PublishedBoardCard({
+  board,
+  index,
+  ownerDisplayName,
+  ownerNameLoading = false,
+}: PublishedBoardCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
@@ -59,7 +66,12 @@ export function PublishedBoardCard({ board, index }: PublishedBoardCardProps) {
               <User className="h-4 w-4 shrink-0" />
               <span className="truncate">
                 Owner:{" "}
-                {displayShareUser(board.owner_user_id, board.owner_user_name)}
+                {ownerNameLoading && !ownerDisplayName && !board.owner_user_name
+                  ? "…"
+                  : displayShareUser(
+                      board.owner_user_id,
+                      ownerDisplayName ?? board.owner_user_name
+                    )}
               </span>
             </div>
             <div className="flex items-center gap-1.5">

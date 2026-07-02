@@ -27,6 +27,7 @@ import {
 } from "@/lib/api/boardsApi";
 import { getApiErrorMessage } from "@/lib/api/axios";
 import { useUserId } from "@/hooks/use-user-id";
+import { useUserNameMap } from "@/hooks/use-user-name-map";
 import { displayShareUser, isSameShareUser } from "@/lib/user-display";
 
 interface ShareBoardDialogProps {
@@ -64,6 +65,9 @@ export function ShareBoardDialog({
   });
 
   const recipients = recipientsData?.recipients ?? [];
+
+  const recipientIds = recipients.map((user) => user.target_user_id);
+  const { data: recipientNameMap = {} } = useUserNameMap(recipientIds);
 
   const invalidateShareQueries = () => {
     queryClient.invalidateQueries({
@@ -224,7 +228,8 @@ export function ShareBoardDialog({
                         <p className="font-medium text-gray-800 truncate">
                           {displayShareUser(
                             user.target_user_id,
-                            user.target_user_name
+                            recipientNameMap[user.target_user_id] ??
+                              user.target_user_name
                           )}
                         </p>
                         <p className="text-xs text-gray-500">

@@ -48,6 +48,7 @@ import {
   PublishedBoardCard,
 } from "@/components/boards";
 import { useUserId } from "@/hooks/use-user-id";
+import { useUserNameMap } from "@/hooks/use-user-name-map";
 import { fetchPublishedBoards } from "@/lib/api/boardsApi";
 
 export default function BoardsPage() {
@@ -77,6 +78,14 @@ export default function BoardsPage() {
   });
 
   const publishedBoards = publishedData?.boards ?? [];
+
+  const publishedOwnerIds = useMemo(
+    () => publishedBoards.map((board) => board.owner_user_id),
+    [publishedBoards]
+  );
+
+  const { data: ownerNameMap = {}, isLoading: ownerNamesLoading } =
+    useUserNameMap(publishedOwnerIds);
 
   const handleRefetch = useCallback(() => {
     refetch();
@@ -243,7 +252,13 @@ export default function BoardsPage() {
           </p>
           <div className={gridClass}>
             {publishedBoards.map((board, index) => (
-              <PublishedBoardCard key={board.board_id} board={board} index={index} />
+              <PublishedBoardCard
+                key={board.board_id}
+                board={board}
+                index={index}
+                ownerDisplayName={ownerNameMap[board.owner_user_id]}
+                ownerNameLoading={ownerNamesLoading}
+              />
             ))}
           </div>
         </div>
