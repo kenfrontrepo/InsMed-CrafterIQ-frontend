@@ -159,6 +159,8 @@ async function updateVisual(params: {
 interface PinCardProps {
   pin: Pin;
   isWriteMode: boolean;
+  /** Owner / manage permission — shows chart refine (sparkle) control */
+  canRefine?: boolean;
   boardId?: string;
   userId?: string;
   /** Computed chart height from the grid container (pixels) */
@@ -168,6 +170,7 @@ interface PinCardProps {
 export const PinCard = memo(function PinCard({
   pin,
   isWriteMode,
+  canRefine = false,
   boardId,
   userId,
   chartHeight,
@@ -297,9 +300,9 @@ export const PinCard = memo(function PinCard({
             </div>
           </div>
 
-          {boardId && userId && (
+          {(canRefine || isWriteMode) && boardId && userId && (
             <div className="no-drag flex items-center gap-0.5">
-              {isWriteMode && (
+              {canRefine && (
                 <RefinePopover
                   boardId={boardId}
                   pinId={pin.id}
@@ -308,19 +311,6 @@ export const PinCard = memo(function PinCard({
                   onSelect={handleRefineSelect}
                 />
               )}
-              {/* Alerts icon — disabled until Insmed alerts API is available
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAlerts(true);
-                }}
-              >
-                <Bell className="h-4 w-4" />
-              </Button>
-              */}
             </div>
           )}
 

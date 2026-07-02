@@ -117,10 +117,11 @@ export function RefinePopover({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon-xs"
-          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          className="no-drag shrink-0 h-7 w-7 border-gray-200 bg-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
+          title="Change chart type"
         >
           <Sparkles className="h-4 w-4" />
         </Button>

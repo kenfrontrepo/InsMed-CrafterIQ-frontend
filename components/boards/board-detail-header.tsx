@@ -23,6 +23,9 @@ interface BoardDetailHeaderProps {
   boardName: string;
   pinCount: number;
   isWriteMode: boolean;
+  canManage: boolean;
+  isSharedView?: boolean;
+  accessLabel?: string | null;
   showSummary: boolean;
   showSearchFilter: boolean;
   onBack: () => void;
@@ -36,6 +39,9 @@ export const BoardDetailHeader = memo(function BoardDetailHeader({
   boardName,
   pinCount,
   isWriteMode,
+  canManage,
+  isSharedView = false,
+  accessLabel,
   showSummary,
   showSearchFilter,
   onBack,
@@ -75,14 +81,24 @@ export const BoardDetailHeader = memo(function BoardDetailHeader({
                   {boardName}
                 </BreadcrumbPage>
               </BreadcrumbItem>
+              {accessLabel ? (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                      {accessLabel}
+                    </span>
+                  </BreadcrumbItem>
+                </>
+              ) : null}
             </BreadcrumbList>
           </Breadcrumb>
         </div>
 
         {/* Right: Summary Toggle + Mode Toggle */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Edit-mode only controls */}
-          {isWriteMode && (
+          {/* Edit-mode only controls — owner or manage permission */}
+          {canManage && isWriteMode && (
             <>
               {/* Filter Toggle */}
               <TooltipProvider delayDuration={0}>
@@ -133,37 +149,43 @@ export const BoardDetailHeader = memo(function BoardDetailHeader({
             </>
           )}
 
-          {/* Mode Toggle */}
-          <TooltipProvider delayDuration={0}>
-            <div className="flex items-center border border-border-mid rounded-lg p-1 bg-hover">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={!isWriteMode ? "secondary" : "ghost"}
-                    className={!isWriteMode ? "bg-text-primary/10" : ""}
-                    size="icon-sm"
-                    onClick={() => onModeChange(false)}
-                  >
-                    <Eye className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Read mode</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isWriteMode ? "secondary" : "ghost"}
-                    className={isWriteMode ? "bg-text-primary/10" : ""}
-                    size="icon-sm"
-                    onClick={() => onModeChange(true)}
-                  >
-                    <Pencil className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Edit mode</TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
+          {/* Mode Toggle — hidden for view-only shared boards */}
+          {canManage ? (
+            <TooltipProvider delayDuration={0}>
+              <div className="flex items-center border border-border-mid rounded-lg p-1 bg-hover">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={!isWriteMode ? "secondary" : "ghost"}
+                      className={!isWriteMode ? "bg-text-primary/10" : ""}
+                      size="icon-sm"
+                      onClick={() => onModeChange(false)}
+                    >
+                      <Eye className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Read mode</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={isWriteMode ? "secondary" : "ghost"}
+                      className={isWriteMode ? "bg-text-primary/10" : ""}
+                      size="icon-sm"
+                      onClick={() => onModeChange(true)}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Edit mode</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          ) : isSharedView ? (
+            <span className="text-xs font-medium text-text-secondary px-2.5 py-1.5 rounded-md bg-hover border border-border-mid">
+              View only
+            </span>
+          ) : null}
         </div>
       </div>
     </header>

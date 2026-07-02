@@ -1,5 +1,32 @@
 import { api } from "./axios";
 
+export type BoardPermission = "view" | "manage";
+export type BoardRole = "owner" | BoardPermission;
+
+export interface BoardAccessInfo {
+  role: BoardRole;
+  owner_user_id: string;
+  is_shared: boolean;
+  permission: BoardPermission | null;
+}
+
+export interface BoardsApiError {
+  status: false;
+  error: string;
+  error_code?: "PERMISSION_DENIED";
+}
+
+/** True when user can edit layout, visuals, summary, etc. */
+export function canManageBoard(access?: BoardAccessInfo | null): boolean {
+  if (!access) return true;
+  if (access.role === "owner") return true;
+  return access.permission === "manage";
+}
+
+function boardUserHeaders(userId: string) {
+  return { "X-User-ID": userId };
+}
+
 /** POST /insmed/boards/createboard/{UserId} */
 export interface CreateBoardRequest {
   name: string;
@@ -47,12 +74,68 @@ export interface UpdateVisualRequest {
 /** POST /insmed/boards/publish/{BoardId}/{UserId} */
 export interface PublishBoardRequest {
   target_user_id: string;
-  permission?: "view" | "manage";
+  permission?: BoardPermission;
+}
+
+export interface PublishBoardResponse {
+  status: boolean;
+  message: string;
+  board_id?: string;
+  target_user_id?: string;
+  permission?: BoardPermission;
+  error?: string;
+  error_code?: "PERMISSION_DENIED";
 }
 
 /** DELETE /insmed/boards/unpublish/{BoardId}/{UserId} */
 export interface UnpublishBoardRequest {
   target_user_id: string;
+}
+
+export interface UnpublishBoardResponse {
+  status: boolean;
+  message: string;
+  board_id?: string;
+  error?: string;
+  error_code?: "PERMISSION_DENIED";
+}
+
+export interface PublishedBoardItem {
+  board_id: string;
+  name: string;
+  description: string | null;
+  owner_user_id: string;
+  owner_user_name?: string | null;
+  permission: BoardPermission;
+  published_at: string;
+}
+
+/** @deprecated Use PublishedBoardItem */
+export type PublishedBoard = PublishedBoardItem;
+
+/** GET /insmed/boards/getpublishedboards/{UserId} */
+export interface PublishedBoardsResponse {
+  status: boolean;
+  boards: PublishedBoardItem[];
+  total: number;
+  error?: string;
+}
+
+export interface PublishRecipientItem {
+  target_user_id: string;
+  target_user_name?: string | null;
+  permission: BoardPermission;
+  published_at: string;
+}
+
+/** GET /insmed/boards/publish/recipients/{BoardId}/{UserId} */
+export interface PublishRecipientsResponse {
+  status: boolean;
+  board_id: string;
+  recipients: PublishRecipientItem[];
+  total: number;
+  error?: string;
+  error_code?: "PERMISSION_DENIED";
 }
 
 export interface BoardListItem {
@@ -111,6 +194,7 @@ export interface BoardPinData {
 export interface BoardDetailsResponse {
   status: boolean;
   board: BoardListItem & { pins: BoardPinMeta[] };
+  access?: BoardAccessInfo;
 }
 
 /** POST /insmed/boards/data/{BoardId}/{UserId} */
@@ -128,6 +212,7 @@ export interface BoardDataResponse {
   pins: BoardPinMeta[];
   pin_count: number;
   pins_data: BoardPinData[];
+  access?: BoardAccessInfo;
 }
 
 /** GET /insmed/boards/summary/options */
@@ -303,30 +388,54 @@ export async function updateVisual(
 export async function publishBoard(
   boardId: string,
   userId: string,
-  target_user_id: string,
-  permission: "view" | "manage" = "manage"
-): Promise<{ status: boolean; message: string }> {
-  const body: PublishBoardRequest = { target_user_id, permission };
-  const res = await api.post(`/insmed/boards/publish/${boardId}/${userId}`, body);
+  /** Username or user id — sent as `target_user_id` */
+  targetUser: string,
+  permission: BoardPermission = "manage"
+): Promise<PublishBoardResponse> {
+  const body: PublishBoardRequest = {
+    target_user_id: targetUser,
+    permission,
+  };
+  const res = await api.post<PublishBoardResponse>(
+    `/insmed/boards/publish/${boardId}/${userId}`,
+    body,
+    { headers: boardUserHeaders(userId) }
+  );
   return res.data;
 }
 
 export async function unpublishBoard(
   boardId: string,
   userId: string,
-  target_user_id: string
-): Promise<{ status: boolean; message: string }> {
-  const body: UnpublishBoardRequest = { target_user_id };
-  const res = await api.delete(`/insmed/boards/unpublish/${boardId}/${userId}`, {
-    data: body,
-  });
+  /** Username or user id — sent as `target_user_id` */
+  targetUser: string
+): Promise<UnpublishBoardResponse> {
+  const body: UnpublishBoardRequest = { target_user_id: targetUser };
+  const res = await api.delete<UnpublishBoardResponse>(
+    `/insmed/boards/unpublish/${boardId}/${userId}`,
+    { data: body, headers: boardUserHeaders(userId) }
+  );
   return res.data;
 }
 
 export async function fetchPublishedBoards(
   userId: string
-): Promise<{ status: boolean; boards: BoardListItem[]; total: number }> {
-  const res = await api.get(`/insmed/boards/getpublishedboards/${userId}`);
+): Promise<PublishedBoardsResponse> {
+  const res = await api.get<PublishedBoardsResponse>(
+    `/insmed/boards/getpublishedboards/${userId}`,
+    { headers: boardUserHeaders(userId) }
+  );
+  return res.data;
+}
+
+export async function fetchPublishRecipients(
+  boardId: string,
+  userId: string
+): Promise<PublishRecipientsResponse> {
+  const res = await api.get<PublishRecipientsResponse>(
+    `/insmed/boards/publish/recipients/${boardId}/${userId}`,
+    { headers: boardUserHeaders(userId) }
+  );
   return res.data;
 }
 

@@ -103,6 +103,7 @@ function layoutToApiPayload(
 interface PinGridProps {
   pins: Pin[];
   isWriteMode: boolean;
+  canRefine?: boolean;
   isLoading?: boolean;
   boardId?: string;
   userId?: string;
@@ -118,6 +119,7 @@ interface PinGridProps {
 export const PinGrid = memo(function PinGrid({
   pins,
   isWriteMode,
+  canRefine = false,
   isLoading = false,
   boardId,
   userId,
@@ -213,6 +215,7 @@ export const PinGrid = memo(function PinGrid({
           <PinCard
             pin={pin}
             isWriteMode={isWriteMode}
+            canRefine={canRefine}
             boardId={boardId}
             userId={userId}
             chartHeight={heightMap.get(pin.id) ?? 450}

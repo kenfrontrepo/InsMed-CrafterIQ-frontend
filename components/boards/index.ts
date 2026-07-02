@@ -8,6 +8,8 @@ export {
   EditBoardModal,
   DeleteBoardDialog,
 } from "./board-modals";
+export { ShareBoardDialog } from "./share-board-dialog";
+export { PublishedBoardCard } from "./published-board-card";
 export { type Board, fetchBoards, formatDate, getRelativeTime } from "./types";
 export { SearchPopover } from "./search-popover";
 export { FilterPopover, type BoardFilters } from "./filter-popover";

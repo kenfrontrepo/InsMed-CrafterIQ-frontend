@@ -36,9 +36,10 @@ interface BoardCardProps {
   index: number;
   onEdit: (board: Board) => void;
   onDelete: (board: Board) => void;
+  onShare: (board: Board) => void;
 }
 
-export function BoardCard({ board, index, onEdit, onDelete }: BoardCardProps) {
+export function BoardCard({ board, index, onEdit, onDelete, onShare }: BoardCardProps) {
   const router = useRouter();
   const tags =
     board.board_tags
@@ -104,8 +105,7 @@ export function BoardCard({ board, index, onEdit, onDelete }: BoardCardProps) {
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                >
+                <DropdownMenuItem onClick={() => onShare(board)}>
                   <Share2 className="mr-2 h-4 w-4" />
                   Share
                 </DropdownMenuItem>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5percent from "@amcharts/amcharts5/percent";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
@@ -57,6 +57,18 @@ export function PieChart({
   valueLabel,
 }: PieChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // Single stable dependency — avoids useLayoutEffect array size warnings (HMR / array deps)
+  const chartKey = useMemo(
+    () =>
+      JSON.stringify({
+        data,
+        showLegend,
+        showLabels,
+        valueLabel: valueLabel ?? "",
+      }),
+    [data, showLegend, showLabels, valueLabel]
+  );
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -194,7 +206,7 @@ export function PieChart({
     series.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, showLegend, showLabels, valueLabel]);
+  }, [chartKey]);
 
   return (
     <div

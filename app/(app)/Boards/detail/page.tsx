@@ -23,6 +23,7 @@ import {
 import {
   fetchBoardData as apiFetchBoardData,
   saveBoardLayout,
+  canManageBoard,
   type BoardDataResponse,
   type BoardPinData,
 } from "@/lib/api/boardsApi";
@@ -132,26 +133,49 @@ function BoardDetailContent() {
       .filter((p): p is Pin => p !== null);
   }, [boardData]);
 
-  // Auto-enter edit mode when board has no pins
+  const canManage = useMemo(
+    () => canManageBoard(boardData?.access),
+    [boardData?.access]
+  );
+  const isSharedView = boardData?.access?.is_shared ?? false;
+  const accessLabel = useMemo(() => {
+    const access = boardData?.access;
+    if (!access?.is_shared) return null;
+    if (access.permission === "manage") return "Shared · Can manage";
+    return "Shared · View only";
+  }, [boardData?.access]);
+
+  // Auto-enter edit mode when board has no pins (owners / manage only)
   useEffect(() => {
-    if (!isLoading && boardData && pins.length === 0 && !isWriteMode) {
+    if (!isLoading && boardData && pins.length === 0 && !isWriteMode && canManage) {
       setIsWriteMode(true);
     }
-  }, [isLoading, boardData, pins.length, isWriteMode]);
+  }, [isLoading, boardData, pins.length, isWriteMode, canManage]);
 
   const kpiPins = useMemo(() => pins.filter((p) => p.chartType === "kpi_card"), [pins]);
   const gridPins = useMemo(() => pins.filter((p) => p.chartType !== "kpi_card"), [pins]);
 
   const displayName = boardData?.name || boardName || "";
 
+  // View-only users cannot enter edit mode
+  useEffect(() => {
+    if (boardData && !canManage && isWriteMode) {
+      setIsWriteMode(false);
+    }
+  }, [boardData, canManage, isWriteMode]);
+
   const handleBack = useCallback(() => {
     router.push("/Boards");
   }, [router]);
 
-  const handleModeChange = useCallback((writeMode: boolean) => {
-    setIsWriteMode(writeMode);
-    if (writeMode) setShowBanner(true);
-  }, []);
+  const handleModeChange = useCallback(
+    (writeMode: boolean) => {
+      if (!canManage) return;
+      setIsWriteMode(writeMode);
+      if (writeMode) setShowBanner(true);
+    },
+    [canManage]
+  );
 
   const handleToggleSummary = useCallback(() => {
     setShowSummary((prev) => !prev);
@@ -217,6 +241,9 @@ function BoardDetailContent() {
             boardName={displayName}
             pinCount={pins.length}
             isWriteMode={isWriteMode}
+            canManage={canManage}
+            isSharedView={isSharedView}
+            accessLabel={accessLabel}
             showSummary={showSummary}
             showSearchFilter={showSearchFilter}
             onBack={handleBack}
@@ -226,7 +253,7 @@ function BoardDetailContent() {
             onAddPins={() => setShowAddPins(true)}
           />
           <AnimatePresence>
-            {isWriteMode && showBanner && (
+            {canManage && isWriteMode && showBanner && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -246,7 +273,11 @@ function BoardDetailContent() {
           
 
             <div className={showSummary ? "p-4" : "hidden " }>
-              <SummarySection boardId={boardId} userId={userId ?? ""} isWriteMode={isWriteMode} />
+              <SummarySection
+                boardId={boardId}
+                userId={userId ?? ""}
+                isWriteMode={canManage && isWriteMode}
+              />
             </div>
 
             <div className="px-4">
@@ -315,7 +346,7 @@ function BoardDetailContent() {
               <div className="mb-4">
                 <KpiCardsStrip
                   pins={kpiPins}
-                  isWriteMode={isWriteMode}
+                  isWriteMode={canManage && isWriteMode}
                   boardId={boardId}
                   userId={userId ?? undefined}
                 />
@@ -326,18 +357,19 @@ function BoardDetailContent() {
 
             <PinGrid
               pins={gridPins}
-              isWriteMode={isWriteMode}
+              isWriteMode={canManage && isWriteMode}
+              canRefine={canManage}
               isLoading={isLoading}
               boardId={boardId ?? undefined}
               userId={userId ?? undefined}
-              onLayoutSave={handleLayoutSave}
+              onLayoutSave={canManage ? handleLayoutSave : undefined}
             />
           </div>
         </div>
       </main>
 
       <AddPinsDialog
-        open={showAddPins}
+        open={canManage && showAddPins}
         boardId={boardId}
         boardName={displayName}
         userId={userId ?? ""}

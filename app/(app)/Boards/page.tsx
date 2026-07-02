@@ -44,8 +44,11 @@ import {
   CreateBoardModal,
   EditBoardModal,
   DeleteBoardDialog,
-} from "@/components/boards/board-modals";
+  ShareBoardDialog,
+  PublishedBoardCard,
+} from "@/components/boards";
 import { useUserId } from "@/hooks/use-user-id";
+import { fetchPublishedBoards } from "@/lib/api/boardsApi";
 
 export default function BoardsPage() {
   const router = useRouter();
@@ -58,6 +61,7 @@ export default function BoardsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
+  const [sharingBoard, setSharingBoard] = useState<Board | null>(null);
 
   // Fetch boards
   const { data: boardsData = [], isLoading, refetch } = useQuery({
@@ -65,6 +69,14 @@ export default function BoardsPage() {
     queryFn: () => fetchBoards(userId!),
     enabled: !!userId,
   });
+
+  const { data: publishedData, isLoading: publishedLoading } = useQuery({
+    queryKey: ["published-boards", userId],
+    queryFn: () => fetchPublishedBoards(userId!),
+    enabled: !!userId,
+  });
+
+  const publishedBoards = publishedData?.boards ?? [];
 
   const handleRefetch = useCallback(() => {
     refetch();
@@ -219,8 +231,29 @@ export default function BoardsPage() {
         </div>
       )}
 
-      {/* Boards Grid */}
+      {/* Shared with me */}
+      {!publishedLoading && publishedBoards.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-medium text-text-primary mb-1">
+            Shared with me
+          </h2>
+          <p className="text-xs text-text-tertiary mb-4">
+            {publishedBoards.length} board
+            {publishedBoards.length !== 1 ? "s" : ""} published to you
+          </p>
+          <div className={gridClass}>
+            {publishedBoards.map((board, index) => (
+              <PublishedBoardCard key={board.board_id} board={board} index={index} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* My boards */}
       <div>
+        {publishedBoards.length > 0 && (
+          <h2 className="text-sm font-medium text-text-primary mb-4">My boards</h2>
+        )}
         {isLoading ? (
           <div className={gridClass}>
             {[...Array(6)].map((_, i) => (
@@ -237,6 +270,7 @@ export default function BoardsPage() {
                   index={index}
                   onEdit={setEditingBoard}
                   onDelete={setDeletingBoard}
+                  onShare={setSharingBoard}
                 />
               ))}
             </AnimatePresence>
@@ -287,6 +321,11 @@ export default function BoardsPage() {
         userId={userId ?? ""}
         onClose={() => setDeletingBoard(null)}
         onSuccess={handleRefetch}
+      />
+      <ShareBoardDialog
+        board={sharingBoard}
+        userId={userId ?? ""}
+        onClose={() => setSharingBoard(null)}
       />
     </div>
   );
