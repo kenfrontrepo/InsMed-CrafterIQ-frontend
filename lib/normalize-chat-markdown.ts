@@ -1,3 +1,23 @@
+function isTableLine(line: string): boolean {
+  return /^\s*\|.+\|\s*$/.test(line.trim());
+}
+
+function isTableSeparatorLine(line: string): boolean {
+  return /^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(line.trim());
+}
+
+function isMarkdownTableBlock(block: string): boolean {
+  const lines = block
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) return false;
+  if (!isTableLine(lines[0]) || !isTableSeparatorLine(lines[1])) return false;
+
+  return lines.every(isTableLine);
+}
+
 /** Unescape literal escape sequences sometimes returned by the API/DB. */
 function unescapeMarkdownText(content: string): string {
   if (!content.includes("\\")) return content;
@@ -9,14 +29,31 @@ function unescapeMarkdownText(content: string): string {
     .replace(/\\t/g, "\t");
 }
 
-/** Ensure GFM tables parse when preceded by a single newline. */
+/** Blank line only before a table block starts — never between table rows. */
 function ensureTableSpacing(content: string): string {
-  return content.replace(/([^\n])\n(\|)/g, "$1\n\n$2");
+  const lines = content.split("\n");
+  const out: string[] = [];
+
+  for (const line of lines) {
+    const isTable = isTableLine(line);
+    const prev = out[out.length - 1]?.trim() ?? "";
+    const prevIsTable = isTableLine(prev);
+
+    if (isTable && out.length > 0 && prev !== "" && !prevIsTable) {
+      out.push("");
+    }
+
+    out.push(line);
+  }
+
+  return out.join("\n");
 }
 
-/** Convert • bullet lines (and inline • blocks) to markdown list syntax. */
-function normalizeBulletMarkdown(content: string): string {
-  const lines = content.split("\n");
+function normalizeBulletBlock(block: string): string {
+  const trimmed = block.trim();
+  if (!trimmed || isMarkdownTableBlock(trimmed)) return block;
+
+  const lines = trimmed.split("\n");
   const hasBulletLines = lines.some((line) => /^\s*•\s+/.test(line.trim()));
 
   if (hasBulletLines) {
@@ -24,48 +61,48 @@ function normalizeBulletMarkdown(content: string): string {
     let inList = false;
 
     for (const line of lines) {
-      const trimmed = line.trim();
+      const lineTrimmed = line.trim();
 
-      if (/^•\s+/.test(trimmed)) {
+      if (/^•\s+/.test(lineTrimmed)) {
         if (!inList && out.length > 0 && out[out.length - 1] !== "") {
           out.push("");
         }
         inList = true;
-        out.push(`- ${trimmed.replace(/^•\s+/, "")}`);
+        out.push(`- ${lineTrimmed.replace(/^•\s+/, "")}`);
         continue;
       }
 
-      if (inList && trimmed) {
+      if (inList && lineTrimmed) {
         out.push("");
         inList = false;
       }
 
       out.push(line);
-      if (!trimmed) inList = false;
+      if (!lineTrimmed) inList = false;
     }
 
     return out.join("\n");
   }
 
-  if (!content.includes("•")) return content;
+  if (!trimmed.includes("•")) return block;
 
+  const items = trimmed
+    .split(/\s*•\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (items.length > 1) {
+    return items.map((item) => `- ${item}`).join("\n");
+  }
+
+  return block;
+}
+
+/** Convert • bullet lines (and inline • blocks) to markdown list syntax. */
+function normalizeBulletMarkdown(content: string): string {
   return content
     .split(/\n\n+/)
-    .map((block) => {
-      const trimmed = block.trim();
-      if (!trimmed.includes("•")) return block;
-
-      const items = trimmed
-        .split(/\s*•\s+/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-      if (items.length > 1) {
-        return items.map((item) => `- ${item}`).join("\n");
-      }
-
-      return block;
-    })
+    .map((block) => normalizeBulletBlock(block))
     .join("\n\n");
 }
 
@@ -74,8 +111,8 @@ export function normalizeChatMarkdown(content: string): string {
   if (!content) return "";
 
   let text = unescapeMarkdownText(content);
-  text = normalizeBulletMarkdown(text);
   text = ensureTableSpacing(text);
+  text = normalizeBulletMarkdown(text);
 
   return text.trim();
 }
