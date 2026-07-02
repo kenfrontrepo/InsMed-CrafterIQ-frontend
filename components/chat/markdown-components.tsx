@@ -29,15 +29,16 @@ export const markdownComponents: Components = {
   ),
   // Custom list styling
   ul: ({ children }) => (
-    <ul className="list-disc list-inside space-y-1 text-black">
+    <ul className="list-disc list-inside space-y-1 text-black my-3">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-inside space-y-1 text-black">
+    <ol className="list-decimal list-inside space-y-1 text-black my-3">
       {children}
     </ol>
   ),
+  li: ({ children }) => <li className="my-1 leading-relaxed">{children}</li>,
   // Custom code styling
   code: ({ children, className }) => {
     const isInline = !className;

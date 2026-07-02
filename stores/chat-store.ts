@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { fetchConversationDetail } from "@/lib/api/chatApi";
+import { normalizeChatMarkdown } from "@/lib/normalize-chat-markdown";
 
 export type ChatContext = "sales" | "opportunities";
 
@@ -204,7 +205,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const messages: Message[] = (data.messages ?? []).map((m) => ({
         id: m.id,
         role: m.role as "user" | "assistant",
-        content: m.content,
+        content: normalizeChatMarkdown(m.content),
         timestamp: new Date(m.timestamp),
         context: "sales",
         visualSpec:
@@ -418,7 +419,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         msg.id === messageId
           ? {
               ...msg,
-              content: result.sysoutput,
+              content: normalizeChatMarkdown(result.sysoutput),
               visualSpec: shouldAttachVisualSpec(result.visual_spec)
                 ? result.visual_spec
                 : undefined,

@@ -8,6 +8,7 @@ import {
   applyValueAxisFormat,
   configureChartNumberFormatter,
   formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 const COLORS = [
@@ -31,6 +32,7 @@ interface AreaChartProps {
   showBullets?: boolean;
   xLabel?: string;
   yLabel?: string;
+  valueFormatLabel?: string;
 }
 
 const defaultData: AreaChartData[] = [
@@ -51,8 +53,10 @@ export function AreaChart({
   showBullets = false,
   xLabel,
   yLabel,
+  valueFormatLabel,
 }: AreaChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -124,7 +128,7 @@ export function AreaChart({
     applyValueAxisFormat(
       yAxis,
       data.map((item) => item.value),
-      yLabel
+      formatContext
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -175,7 +179,7 @@ export function AreaChart({
         const val = (dataItem as am5.DataItem<Record<string, unknown>>).get(
           "valueY" as never
         ) as number;
-        return `${cat}: ${formatChartValue(val, yLabel)}`;
+        return `${cat}: ${formatChartValue(val, formatContext)}`;
       }
       return "{categoryX}: {valueY}";
     });
@@ -219,7 +223,7 @@ export function AreaChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, color, showBullets, xLabel, yLabel]);
+  }, [data, color, showBullets, xLabel, yLabel, valueFormatLabel]);
 
   return (
     <div

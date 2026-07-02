@@ -9,6 +9,7 @@ import {
   configureChartNumberFormatter,
   extractSeriesValues,
   formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 const COLORS = [
@@ -19,13 +20,6 @@ const COLORS = [
   "#9B6BD5",
   "#BA6DD6",
 ];
-
-function formatLargeNumber(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return value.toFixed(1);
-}
 
 interface GroupedBarChartData {
   category: string;
@@ -46,6 +40,7 @@ interface GroupedBarChartProps {
   showLegend?: boolean;
   xLabel?: string;
   yLabel?: string;
+  valueFormatLabel?: string;
 }
 
 const defaultData: GroupedBarChartData[] = [
@@ -69,8 +64,10 @@ export function GroupedBarChart({
   showLegend = true,
   xLabel,
   yLabel,
+  valueFormatLabel,
 }: GroupedBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -132,7 +129,7 @@ export function GroupedBarChart({
         data,
         seriesConfig.map((config) => config.field)
       ),
-      yLabel
+      formatContext
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -195,7 +192,7 @@ export function GroupedBarChart({
         if (dataItem) {
           const val = dataItem.get("valueY" as any) as number;
           if (val !== undefined) {
-            return `${config.name}: ${formatLargeNumber(val)}`;
+            return `${config.name}: ${formatChartValue(val, formatContext, config.name)}`;
           }
         }
         return _text ?? "";
@@ -234,7 +231,7 @@ export function GroupedBarChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, seriesConfig, showLegend, xLabel, yLabel]);
+  }, [data, seriesConfig, showLegend, xLabel, yLabel, valueFormatLabel]);
 
   return (
     <div

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
@@ -43,6 +43,7 @@ import { fetchPinDetails } from "@/lib/api/pinsApi";
 import { fetchConversationDetail } from "@/lib/api/chatApi";
 import { useUserId } from "@/hooks/use-user-id";
 import { markdownComponents } from "../chat/markdown-components";
+import { normalizeChatMarkdown } from "@/lib/normalize-chat-markdown";
 
 const ChatChart = dynamic(
   () => import("@/components/chat/chat-chart").then((m) => m.ChatChart),
@@ -106,11 +107,14 @@ export function PinDetailsDialog({
     enabled: !!userId && needsMessageFallback,
   });
 
-  const descriptionContent =
-    pin?.content?.trim() ||
-    fallbackContent?.trim() ||
-    messageContent?.trim() ||
-    null;
+  const descriptionContent = useMemo(() => {
+    const raw =
+      pin?.content?.trim() ||
+      fallbackContent?.trim() ||
+      messageContent?.trim() ||
+      null;
+    return raw ? normalizeChatMarkdown(raw) : null;
+  }, [pin?.content, fallbackContent, messageContent]);
 
   return (
     <motion.div

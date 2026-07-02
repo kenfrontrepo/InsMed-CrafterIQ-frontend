@@ -8,6 +8,7 @@ import {
   applyValueAxisFormat,
   configureChartNumberFormatter,
   formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 const COLORS = [
@@ -34,6 +35,7 @@ interface BarChartProps {
   className?: string;
   xLabel?: string;
   yLabel?: string;
+  valueFormatLabel?: string;
   compact?: boolean;
 }
 
@@ -53,9 +55,11 @@ export function BarChart({
   className,
   xLabel,
   yLabel,
+  valueFormatLabel,
   compact = false,
 }: BarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -140,7 +144,7 @@ export function BarChart({
     applyValueAxisFormat(
       yAxis,
       data.map((item) => item.value),
-      yLabel
+      formatContext
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -184,7 +188,7 @@ export function BarChart({
       const value = target.dataItem?.get("valueY");
       const category = target.dataItem?.get("categoryX");
       if (value !== undefined && category) {
-        return `${category}: ${formatChartValue(value, yLabel)}`;
+        return `${category}: ${formatChartValue(value, formatContext)}`;
       }
       return _text;
     });
@@ -230,7 +234,7 @@ export function BarChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, xLabel, yLabel, compact]);
+  }, [data, xLabel, yLabel, valueFormatLabel, compact]);
 
   return (
     <div

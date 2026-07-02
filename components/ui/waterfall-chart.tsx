@@ -7,6 +7,8 @@ import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import {
   applyValueAxisFormat,
   configureChartNumberFormatter,
+  formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 interface WaterfallChartData {
@@ -22,6 +24,8 @@ interface WaterfallChartProps {
   positiveColor?: string;
   negativeColor?: string;
   totalColor?: string;
+  yLabel?: string;
+  valueFormatLabel?: string;
 }
 
 const defaultData: WaterfallChartData[] = [
@@ -42,8 +46,11 @@ export function WaterfallChart({
   positiveColor = "#34D399",
   negativeColor = "#F87171",
   totalColor = "#7294D6",
+  yLabel,
+  valueFormatLabel,
 }: WaterfallChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -119,7 +126,7 @@ export function WaterfallChart({
     applyValueAxisFormat(
       yAxis,
       processedData.flatMap((item) => [item.open, item.close, item.value]),
-      undefined
+      formatContext
     );
 
     yAxis.get("renderer").labels.template.setAll({

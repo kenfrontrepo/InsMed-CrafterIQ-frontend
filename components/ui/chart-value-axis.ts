@@ -8,24 +8,49 @@ export function configureChartNumberFormatter(root: am5.Root): void {
   root.numberFormatter.set("numberFormat", "#");
 }
 
+export function mergeFormatContext(
+  ...parts: (string | undefined | null)[]
+): string {
+  return parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+}
+
 function allValuesAreIntegers(values: number[]): boolean {
   return values.every(
     (v) => Number.isFinite(v) && Math.abs(v - Math.round(v)) < 1e-9
   );
 }
 
-function labelContext(axisLabel?: string, seriesLabel?: string): string {
-  return [axisLabel, seriesLabel].filter(Boolean).join(" ").toLowerCase();
+function labelContext(
+  formatContext?: string,
+  seriesLabel?: string
+): string {
+  return mergeFormatContext(formatContext, seriesLabel).toLowerCase();
 }
 
 /** Counts, percentages, and other non-currency metrics — never prefix with $. */
 export function isCountLikeLabel(
-  axisLabel?: string,
+  formatContext?: string,
   seriesLabel?: string
 ): boolean {
-  const label = labelContext(axisLabel, seriesLabel);
+  const label = labelContext(formatContext, seriesLabel);
   if (!label) return false;
-  return /\b(count|number|#|quantity|units|projects?|items|ideas?|employees|people|headcount|quarter|year|status|percent|%|rate|ratio|off track)\b/.test(
+  return /\b(count|number|#|quantity|units|projects?|items|employees|people|headcount|quarter|year|status|percent|%|rate|ratio|off track)\b/.test(
+    label
+  );
+}
+
+/** Budget, spend, and other currency metrics — show $ prefix. */
+export function isCurrencyLikeLabel(
+  formatContext?: string,
+  seriesLabel?: string
+): boolean {
+  const label = labelContext(formatContext, seriesLabel);
+  if (!label) return false;
+
+  return /\b(budget|cost|costs|price|revenue|revenues|spend|spending|amount|fee|fees|salary|salaries|wage|investment|capital|expense|expenses|dollar|usd|savings|funding|allocation|financial|money|payment|payments|requested)\b/.test(
     label
   );
 }
@@ -33,7 +58,7 @@ export function isCountLikeLabel(
 /** Use whole-number ticks for counts and small integer series (e.g. quarters 1–4). */
 export function shouldUseIntegerValueAxis(
   values: number[],
-  axisLabel?: string,
+  formatContext?: string,
   seriesLabel?: string
 ): boolean {
   if (values.length === 0) return false;
@@ -42,14 +67,31 @@ export function shouldUseIntegerValueAxis(
   if (!allIntegers) return false;
 
   const max = Math.max(...values, 0);
-  if (isCountLikeLabel(axisLabel, seriesLabel)) return true;
+  if (isCountLikeLabel(formatContext, seriesLabel)) return true;
 
   return max <= 500;
 }
 
+function formatPlainNumber(value: number, asInteger: boolean): string {
+  if (asInteger) {
+    return Math.round(value).toLocaleString("en-US");
+  }
+
+  if (Number.isInteger(value)) {
+    return value.toLocaleString("en-US");
+  }
+
+  return value
+    .toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })
+    .replace(/\.?0+$/, "");
+}
+
 function bindPlainAxisLabels(
   axis: am5xy.ValueAxis<am5xy.AxisRenderer>,
-  axisLabel?: string
+  formatContext?: string
 ): void {
   axis.get("renderer").labels.template.adapters.add("text", (text, target) => {
     const dataItem = target.dataItem as
@@ -58,7 +100,7 @@ function bindPlainAxisLabels(
     if (dataItem) {
       const value = dataItem.get("value");
       if (typeof value === "number" && Number.isFinite(value)) {
-        return formatChartValue(value, axisLabel);
+        return formatChartValue(value, formatContext);
       }
     }
     return text;
@@ -68,15 +110,15 @@ function bindPlainAxisLabels(
 export function applyValueAxisFormat(
   axis: am5xy.ValueAxis<am5xy.AxisRenderer>,
   values: number[],
-  axisLabel?: string
+  formatContext?: string
 ): void {
   if (values.length === 0) {
     axis.setAll({ numberFormat: "#", min: 0, maxPrecision: 0 });
-    bindPlainAxisLabels(axis, axisLabel);
+    bindPlainAxisLabels(axis, formatContext);
     return;
   }
 
-  if (shouldUseIntegerValueAxis(values, axisLabel)) {
+  if (shouldUseIntegerValueAxis(values, formatContext)) {
     const max = Math.max(...values, 0);
     const axisMax = Math.max(Math.ceil(max), 1);
     axis.setAll({
@@ -86,7 +128,7 @@ export function applyValueAxisFormat(
       max: axisMax,
       strictMinMax: true,
     });
-    bindPlainAxisLabels(axis, axisLabel);
+    bindPlainAxisLabels(axis, formatContext);
     return;
   }
 
@@ -97,7 +139,7 @@ export function applyValueAxisFormat(
       min: 0,
       strictMinMax: false,
     });
-    bindPlainAxisLabels(axis, axisLabel);
+    bindPlainAxisLabels(axis, formatContext);
     return;
   }
 
@@ -107,7 +149,7 @@ export function applyValueAxisFormat(
     min: 0,
     strictMinMax: false,
   });
-  bindPlainAxisLabels(axis, axisLabel);
+  bindPlainAxisLabels(axis, formatContext);
 }
 
 export function extractSeriesValues(
@@ -128,15 +170,20 @@ export function extractSeriesValues(
 
 export function formatChartValue(
   value: number,
-  axisLabel?: string,
+  formatContext?: string,
   seriesLabel?: string
 ): string {
   if (!Number.isFinite(value)) return "";
-  if (shouldUseIntegerValueAxis([value], axisLabel, seriesLabel)) {
-    return String(Math.round(value));
+
+  const context = mergeFormatContext(formatContext, seriesLabel);
+  const asInteger =
+    shouldUseIntegerValueAxis([value], context) ||
+    allValuesAreIntegers([value]);
+  const plain = formatPlainNumber(value, asInteger);
+
+  if (isCurrencyLikeLabel(context)) {
+    return `$${plain}`;
   }
-  if (allValuesAreIntegers([value])) {
-    return String(Math.round(value));
-  }
-  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
+
+  return plain;
 }

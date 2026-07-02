@@ -8,6 +8,8 @@ import {
   applyValueAxisFormat,
   configureChartNumberFormatter,
   extractSeriesValues,
+  formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 const COLORS = [
@@ -18,13 +20,6 @@ const COLORS = [
   "#9B6BD5",
   "#BA6DD6",
 ];
-
-function formatLargeNumber(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return value.toFixed(1);
-}
 
 interface StackedBarChartData {
   category: string;
@@ -46,6 +41,7 @@ interface StackedBarChartProps {
   horizontal?: boolean;
   xLabel?: string;
   yLabel?: string;
+  valueFormatLabel?: string;
 }
 
 const defaultData: StackedBarChartData[] = [
@@ -72,8 +68,10 @@ export function StackedBarChart({
   horizontal = false,
   xLabel,
   yLabel,
+  valueFormatLabel,
 }: StackedBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel, xLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -126,7 +124,7 @@ export function StackedBarChart({
           data,
           seriesConfig.map((config) => config.field)
         ),
-        xLabel
+        formatContext
       );
 
       yAxis.get("renderer").labels.template.setAll({
@@ -169,7 +167,7 @@ export function StackedBarChart({
           data,
           seriesConfig.map((config) => config.field)
         ),
-        yLabel
+        formatContext
       );
 
       const shouldRotate = data.length > 6;
@@ -269,7 +267,7 @@ export function StackedBarChart({
         const dataItem = target.dataItem as am5.DataItem<am5xy.IColumnSeriesDataItem> | undefined;
         if (dataItem) {
           const val = dataItem.get(valueField as "valueY") as number;
-          return `${config.name}: ${formatLargeNumber(val)}`;
+          return `${config.name}: ${formatChartValue(val, formatContext, config.name)}`;
         }
         return `${config.name}: {${valueField}}`;
       });
@@ -304,7 +302,7 @@ export function StackedBarChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, seriesConfig, showLegend, horizontal, xLabel, yLabel]);
+  }, [data, seriesConfig, showLegend, horizontal, xLabel, yLabel, valueFormatLabel]);
 
   return (
     <div

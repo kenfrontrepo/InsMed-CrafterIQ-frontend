@@ -316,6 +316,11 @@ export const ChatChart = memo(function ChatChart({
     [visualSpec.series]
   );
 
+  const valueFormatLabel = useMemo(
+    () => [visualSpec.title, visualSpec.y_label].filter(Boolean).join(" "),
+    [visualSpec.title, visualSpec.y_label]
+  );
+
   // Render the appropriate chart
   const renderChart = () => {
     switch (visualSpec.chart_type) {
@@ -326,6 +331,7 @@ export const ChatChart = memo(function ChatChart({
             height={height}
             xLabel={visualSpec.x_label}
             yLabel={visualSpec.y_label}
+            valueFormatLabel={valueFormatLabel}
           />
         );
 
@@ -336,6 +342,7 @@ export const ChatChart = memo(function ChatChart({
             height={height}
             xLabel={visualSpec.x_label}
             yLabel={visualSpec.y_label}
+            valueFormatLabel={valueFormatLabel}
           />
         );
 
@@ -346,6 +353,7 @@ export const ChatChart = memo(function ChatChart({
             height={height}
             xLabel={visualSpec.x_label}
             yLabel={visualSpec.y_label}
+            valueFormatLabel={valueFormatLabel}
           />
         );
 
@@ -356,6 +364,7 @@ export const ChatChart = memo(function ChatChart({
             height={height}
             xLabel={visualSpec.x_label}
             yLabel={visualSpec.y_label}
+            valueFormatLabel={valueFormatLabel}
           />
         );
 
@@ -368,6 +377,7 @@ export const ChatChart = memo(function ChatChart({
             showLegend
             xLabel={visualSpec.x_label}
             yLabel={visualSpec.y_label}
+            valueFormatLabel={valueFormatLabel}
           />
         );
 
@@ -379,6 +389,7 @@ export const ChatChart = memo(function ChatChart({
             height={height}
             xLabel={visualSpec.x_label}
             yLabel={visualSpec.y_label}
+            valueFormatLabel={valueFormatLabel}
           />
         );
 
@@ -390,6 +401,7 @@ export const ChatChart = memo(function ChatChart({
             height={height}
             xLabel={visualSpec.x_label}
             yLabel={visualSpec.y_label}
+            valueFormatLabel={valueFormatLabel}
           />
         );
 
@@ -407,7 +419,7 @@ export const ChatChart = memo(function ChatChart({
           <PieChart
             data={chartData as any[]}
             height={height}
-            valueLabel={visualSpec.y_label || visualSpec.title}
+            valueLabel={valueFormatLabel || visualSpec.y_label || visualSpec.title}
           />
         );
 
@@ -438,7 +450,7 @@ export const ChatChart = memo(function ChatChart({
         return <FunnelChart data={chartData as any[]} height={height} />;
 
       case "waterfall":
-        return <WaterfallChart data={chartData as any[]} height={height} />;
+        return <WaterfallChart data={chartData as any[]} height={height} valueFormatLabel={valueFormatLabel} yLabel={visualSpec.y_label} />;
 
       case "gauge":
         return (

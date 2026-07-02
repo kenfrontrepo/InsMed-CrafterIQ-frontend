@@ -8,6 +8,7 @@ import {
   applyValueAxisFormat,
   configureChartNumberFormatter,
   formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 const COLORS = [
@@ -34,6 +35,7 @@ interface HorizontalBarChartProps {
   className?: string;
   xLabel?: string;
   yLabel?: string;
+  valueFormatLabel?: string;
 }
 
 const defaultData: HorizontalBarChartData[] = [
@@ -44,8 +46,8 @@ const defaultData: HorizontalBarChartData[] = [
   { category: "Product E", value: 4800 },
 ];
 
-function formatLargeNumber(value: number, axisLabel?: string): string {
-  return formatChartValue(value, axisLabel);
+function formatLargeNumber(value: number, formatContext?: string): string {
+  return formatChartValue(value, formatContext);
 }
 
 export function HorizontalBarChart({ 
@@ -54,8 +56,10 @@ export function HorizontalBarChart({
   className,
   xLabel,
   yLabel,
+  valueFormatLabel,
 }: HorizontalBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel, xLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -112,7 +116,7 @@ export function HorizontalBarChart({
     applyValueAxisFormat(
       xAxis,
       data.map((item) => item.value),
-      xLabel
+      formatContext
     );
 
     xAxis.get("renderer").labels.template.setAll({
@@ -202,7 +206,7 @@ export function HorizontalBarChart({
         const cat = dataItem.get("categoryY" as any) as string;
         const val = dataItem.get("valueX" as any) as number;
         if (cat && val !== undefined) {
-          return `${cat}: ${formatLargeNumber(val, xLabel)}`;
+          return `${cat}: ${formatLargeNumber(val, formatContext)}`;
         }
       }
       return _text ?? "";
@@ -215,7 +219,7 @@ export function HorizontalBarChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, xLabel, yLabel]);
+  }, [data, xLabel, yLabel, valueFormatLabel]);
 
   return (
     <div

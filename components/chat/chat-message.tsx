@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useCallback, useRef } from "react";
+import { memo, useMemo, useState, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import { markdownComponents } from "./markdown-components";
 import { useUserId } from "@/hooks/use-user-id";
 import { createPin, deletePin as apiDeletePin } from "@/lib/api/pinsApi";
 import { getApiErrorMessage } from "@/lib/api/axios";
+import { normalizeChatMarkdown } from "@/lib/normalize-chat-markdown";
 
 // Dynamically import chart component to reduce initial bundle
 const ChatChart = dynamic(() => import("./chat-chart").then((m) => m.ChatChart), {
@@ -74,6 +75,11 @@ export const ChatMessage = memo(function ChatMessage({
   const chartRef = useRef<HTMLDivElement>(null);
 
   const hasChart = shouldAttachVisualSpec(message.visualSpec);
+
+  const markdownContent = useMemo(
+    () => normalizeChatMarkdown(message.content),
+    [message.content]
+  );
 
   const queryClient = useQueryClient();
   const { userId } = useUserId();
@@ -177,7 +183,7 @@ export const ChatMessage = memo(function ChatMessage({
                 remarkPlugins={[remarkGfm]}
                 components={markdownComponents}
               >
-                {message.content}
+                {markdownContent}
               </ReactMarkdown>
             </div>
 

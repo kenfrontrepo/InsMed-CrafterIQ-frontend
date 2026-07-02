@@ -1,4 +1,5 @@
 import { api } from "./axios";
+import { normalizeChatMarkdown } from "@/lib/normalize-chat-markdown";
 
 /** POST /insmed/pins/createpin/{UserId} */
 export interface CreatePinRequest {
@@ -220,7 +221,7 @@ export function normalizePinDetail(pin: PinDetail): PinDetail {
 
   return {
     ...pin,
-    content: content?.trim() || null,
+    content: content ? normalizeChatMarkdown(content.trim()) : null,
   };
 }
 

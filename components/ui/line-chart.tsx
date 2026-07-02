@@ -8,6 +8,7 @@ import {
   applyValueAxisFormat,
   configureChartNumberFormatter,
   formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 const COLORS = [
@@ -31,6 +32,7 @@ interface LineChartProps {
   showBullets?: boolean;
   xLabel?: string;
   yLabel?: string;
+  valueFormatLabel?: string;
 }
 
 const defaultData: LineChartData[] = [
@@ -51,8 +53,10 @@ export function LineChart({
   showBullets = true,
   xLabel,
   yLabel,
+  valueFormatLabel,
 }: LineChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -110,7 +114,7 @@ export function LineChart({
     applyValueAxisFormat(
       yAxis,
       data.map((item) => item.value),
-      yLabel
+      formatContext
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -171,7 +175,7 @@ export function LineChart({
         const cat = dataItem.get("categoryX" as any) as string;
         const val = dataItem.get("valueY" as any) as number;
         if (cat && val !== undefined) {
-          return `${cat}: ${formatChartValue(val, yLabel)}`;
+          return `${cat}: ${formatChartValue(val, formatContext)}`;
         }
       }
       return _text ?? "";
@@ -203,7 +207,7 @@ export function LineChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, color, showBullets, xLabel, yLabel]);
+  }, [data, color, showBullets, xLabel, yLabel, valueFormatLabel]);
 
   return (
     <div

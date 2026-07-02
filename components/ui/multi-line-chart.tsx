@@ -9,6 +9,7 @@ import {
   configureChartNumberFormatter,
   extractSeriesValues,
   formatChartValue,
+  mergeFormatContext,
 } from "@/components/ui/chart-value-axis";
 
 const COLORS = [
@@ -41,6 +42,7 @@ interface MultiLineChartProps {
   showLegend?: boolean;
   xLabel?: string;
   yLabel?: string;
+  valueFormatLabel?: string;
 }
 
 const defaultData: MultiLineChartData[] = [
@@ -68,8 +70,10 @@ export function MultiLineChart({
   showLegend = true,
   xLabel,
   yLabel,
+  valueFormatLabel,
 }: MultiLineChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const formatContext = mergeFormatContext(valueFormatLabel, yLabel);
 
   useLayoutEffect(() => {
     if (!chartRef.current) return;
@@ -146,7 +150,7 @@ export function MultiLineChart({
         data,
         seriesConfig.map((s) => s.field)
       ),
-      yLabel
+      formatContext
     );
 
     yAxis.get("renderer").labels.template.setAll({
@@ -194,7 +198,7 @@ export function MultiLineChart({
         const dataItem = target.dataItem as am5.DataItem<am5xy.ILineSeriesDataItem> | undefined;
         if (dataItem) {
           const val = dataItem.get("valueY") as number;
-          return `${config.name}: ${formatChartValue(val, yLabel, config.name)}`;
+          return `${config.name}: ${formatChartValue(val, formatContext, config.name)}`;
         }
         return `${config.name}: {valueY}`;
       });
@@ -242,7 +246,7 @@ export function MultiLineChart({
     chart.appear(1000, 100);
 
     return () => root.dispose();
-  }, [data, seriesConfig, showBullets, showLegend, xLabel, yLabel]);
+  }, [data, seriesConfig, showBullets, showLegend, xLabel, yLabel, valueFormatLabel]);
 
   return (
     <div
