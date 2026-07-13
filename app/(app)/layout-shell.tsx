@@ -30,13 +30,13 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="grid grid-rows-[minmax(56px,auto)_1fr] h-screen overflow-hidden bg-page transition-[grid-template-columns] duration-300 ease-in-out"
+      className="print-root grid grid-rows-[minmax(56px,auto)_1fr] h-screen overflow-hidden bg-page transition-[grid-template-columns] duration-300 ease-in-out print:block print:h-auto print:overflow-visible print:max-h-none"
       style={{
         gridTemplateColumns: (isDesktop && sidebarOpen) ? "260px 1fr" : "0px 1fr",
       }}
     >
       {/* Top Nav */}
-      <nav className="col-span-2 flex items-center min-h-14 px-4 sm:px-5 bg-card border-b border-border-subtle z-10 gap-2 sm:gap-3">
+      <nav className="print-hide print:hidden col-span-2 flex items-center min-h-14 px-4 sm:px-5 bg-card border-b border-border-subtle z-10 gap-2 sm:gap-3">
         <div className="flex items-center gap-1 min-w-0 shrink-0">
           <button
             type="button"
@@ -111,7 +111,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
       {/* Desktop sidebar — stays in grid flow so <main> always lands in col 2 */}
       <aside
-        className="overflow-hidden transition-[width] duration-300 ease-in-out"
+        className="print-hide print:hidden overflow-hidden transition-[width] duration-300 ease-in-out"
         style={{ width: (isDesktop && sidebarOpen) ? 260 : 0 }}
       >
         <div className="w-[260px] h-full hidden md:block">
@@ -121,19 +121,19 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile sidebar — fixed overlay, slides in from left */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 md:hidden ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        className={`print-hide print:hidden fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 md:hidden ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         onClick={() => setOpen(false)}
         aria-hidden
       />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300 ease-in-out md:hidden shadow-xl`}
+        className={`print-hide print:hidden fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300 ease-in-out md:hidden shadow-xl`}
         style={{ transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)" }}
       >
         <SidebarNav />
       </aside>
 
       {/* Main Content */}
-      <main className="flex flex-col overflow-hidden relative">
+      <main className="flex flex-col overflow-hidden relative print:overflow-visible print:h-auto print:block">
         {children}
       </main>
     </div>

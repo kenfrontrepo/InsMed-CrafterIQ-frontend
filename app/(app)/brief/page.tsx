@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useMemo } from "react";
+import { Suspense, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -24,6 +24,14 @@ import {
   type BriefSection,
   type BriefTimelineItem,
 } from "@/lib/api/briefsApi";
+import {
+  briefDataToEmailBody,
+  openBriefEmail,
+  printBriefDocument,
+  resolveLatestBriefData,
+  waitForChartsReady,
+  waitForPrintLayout,
+} from "@/lib/brief-export";
 import { Button } from "@/components/ui/button";
 import { FilterableDataTable } from "@/components/report/filterable-data-table";
 import { DonutChart } from "@/components/ui/donut-chart";
@@ -92,7 +100,7 @@ function StatCard({ stat }: { stat: BriefDisplayStat }) {
         : "text-text-tertiary";
 
   return (
-    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow print-avoid-break">
       <div className="text-[11px] font-semibold tracking-[0.8px] uppercase text-text-tertiary mb-2">
         {stat.label}
       </div>
@@ -113,7 +121,7 @@ function BriefTableSection({ section }: { section: BriefChartSection }) {
   const rows = section.data ?? [];
 
   return (
-    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm mb-5">
+    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm mb-5 print-avoid-break">
       <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
         {section.title}
       </div>
@@ -132,7 +140,7 @@ function BriefTableSection({ section }: { section: BriefChartSection }) {
 
 function BriefTimelineSection({ items }: { items: BriefTimelineItem[] }) {
   return (
-    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
+    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm print-avoid-break">
       <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
         Timeline
       </div>
@@ -182,7 +190,7 @@ function BriefDonutSection({ section }: { section: BriefChartSection }) {
   const hasChartStructure = (section.labels?.length ?? 0) > 0;
 
   return (
-    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm">
+    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm print-avoid-break">
       <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
         {section.title}
       </div>
@@ -220,7 +228,7 @@ function BriefHorizontalBarSection({ section }: { section: BriefChartSection }) 
   const hasValues = chartData.some((item) => item.value > 0);
 
   return (
-    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm mb-5">
+    <div className="bg-card border border-border-subtle rounded-xl p-5 shadow-sm mb-5 print-avoid-break">
       <div className="text-[13px] font-bold text-text-primary tracking-[0.3px] mb-4">
         {section.title}
       </div>
@@ -381,46 +389,122 @@ function BriefContent({
   data: rawData,
   entityName,
   conversationId,
+  briefId,
+  userId,
+  onBriefDataUpdated,
 }: {
   data: BriefData;
   entityName: string;
   conversationId: string | null;
+  briefId: string;
+  userId: string;
+  onBriefDataUpdated?: (briefData: BriefData, entityName: string) => void;
 }) {
+  const printRootRef = useRef<HTMLDivElement>(null);
   const view = useMemo(
     () => normalizeBriefData(rawData, entityName),
     [rawData, entityName]
   );
 
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
+  const loadLatestBriefData = useCallback(async () => {
+    // Prefer in-memory brief_data; otherwise fetch latest from API
+    const cached = await resolveLatestBriefData({
+      userId,
+      briefId,
+      briefData: rawData,
+      entityName,
+      preferCached: true,
+    });
+
+    // Always refresh from API so Print/Share use the latest saved brief
+    const latest = await resolveLatestBriefData({
+      userId,
+      briefId,
+      briefData: cached?.briefData ?? rawData,
+      entityName: cached?.entityName || entityName,
+      preferCached: false,
+    });
+
+    return latest ?? cached;
+  }, [briefId, entityName, rawData, userId]);
+
+  const handlePrint = useCallback(async () => {
+    try {
+      const latest = await loadLatestBriefData();
+      if (latest?.briefData) {
+        onBriefDataUpdated?.(
+          latest.briefData,
+          latest.entityName || entityName
+        );
+        await waitForPrintLayout(120);
+      }
+
+      const root = printRootRef.current;
+      if (!root) {
+        window.print();
+        return;
+      }
+
+      await waitForChartsReady(root);
+      await printBriefDocument(root);
+    } catch {
+      window.print();
+    }
+  }, [entityName, loadLatestBriefData, onBriefDataUpdated]);
 
   const handleShare = useCallback(async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const title = view.title;
-    const text = `${title}${view.subtitle ? ` — ${view.subtitle}` : ""}`;
     try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title, text, url });
-        return;
+      const latest = await loadLatestBriefData();
+      const briefData = latest?.briefData ?? rawData;
+      const name = latest?.entityName || entityName;
+      if (latest?.briefData) {
+        onBriefDataUpdated?.(latest.briefData, name);
       }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard");
+
+      const normalized = normalizeBriefData(briefData, name);
+      const title = normalized.title || view.title;
+      const body = briefDataToEmailBody(briefData, name);
+
+      try {
+        if (typeof navigator !== "undefined" && navigator.share) {
+          await navigator.share({ title, text: body, url });
+          return;
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+
+      openBriefEmail({ subject: title, body: `${body}\n\n${url}` });
     } catch {
-      toast.error("Could not copy link");
+      const title = view.title;
+      const text = `${title}${view.subtitle ? ` — ${view.subtitle}` : ""}`;
+      try {
+        if (typeof navigator !== "undefined" && navigator.share) {
+          await navigator.share({ title, text, url });
+          return;
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard");
+      } catch {
+        toast.error("Could not copy link");
+      }
     }
-  }, [view.title, view.subtitle]);
+  }, [entityName, loadLatestBriefData, onBriefDataUpdated, rawData, view.subtitle, view.title]);
 
   const backToChatHref = conversationId
     ? `/chat?conversation_id=${conversationId}`
     : "/chat";
 
   return (
-    <div className="max-w-[1100px] mx-auto p-10 animate-[fadeUp_0.3s_ease] print:p-6">
+    <div
+      ref={printRootRef}
+      className="print-document max-w-[1100px] mx-auto p-10 animate-[fadeUp_0.3s_ease] print:p-6"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6 print:hidden">
         <Link
           href={backToChatHref}
@@ -597,6 +681,7 @@ function BriefContent({
 
 function BriefPageInner() {
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { userId } = useUserId();
   const briefId = searchParams.get("id");
   const conversationIdFromUrl = searchParams.get("conversation_id");
@@ -609,6 +694,21 @@ function BriefPageInner() {
 
   const conversationId =
     conversationIdFromUrl ?? data?.brief?.conversation_id ?? null;
+
+  const handleBriefDataUpdated = useCallback(
+    (briefData: BriefData, entityName: string) => {
+      if (!briefId || !userId || !data?.brief) return;
+      queryClient.setQueryData(["brief", briefId, userId], {
+        ...data,
+        brief: {
+          ...data.brief,
+          entity_name: entityName || data.brief.entity_name,
+          brief_data: briefData,
+        },
+      });
+    },
+    [briefId, data, queryClient, userId]
+  );
 
   if (!briefId) {
     return (
@@ -623,9 +723,9 @@ function BriefPageInner() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || !userId) {
     return (
-      <div className="h-full overflow-y-auto bg-page scrollbar-hide">
+      <div className="print-scroll h-full overflow-y-auto bg-page scrollbar-hide print:h-auto print:overflow-visible print:max-h-none">
         <div className="max-w-[1100px] mx-auto p-10 flex flex-col items-center justify-center min-h-[60vh]">
           <Loader2 className="h-6 w-6 animate-spin text-text-tertiary mb-4" />
           <p className="text-sm text-text-tertiary">Loading brief…</p>
@@ -658,11 +758,14 @@ function BriefPageInner() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-page scrollbar-hide">
+    <div className="print-scroll h-full overflow-y-auto bg-page scrollbar-hide print:h-auto print:overflow-visible print:max-h-none">
       <BriefContent
         data={data.brief.brief_data}
         entityName={data.brief.entity_name}
         conversationId={conversationId}
+        briefId={briefId}
+        userId={userId}
+        onBriefDataUpdated={handleBriefDataUpdated}
       />
     </div>
   );
