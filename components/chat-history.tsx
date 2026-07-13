@@ -23,6 +23,7 @@ import {
 } from "@/lib/api/chatApi";
 import {
   mergeConversationsWithLocalChats,
+  removeConversationFromHistoryCache,
   sortConversationsNewestFirst,
   upsertConversationInHistoryCache,
 } from "@/lib/chat-history-utils";
@@ -208,6 +209,7 @@ export function ChatHistory() {
     (state) => state.loadConversationFromHistory
   );
   const renameConversation = useChatStore((state) => state.renameConversation);
+  const removeConversation = useChatStore((state) => state.removeConversation);
   const activeChat = useChatStore((state) => state.activeChat);
   const localChats = useChatStore((state) => state.chats);
 
@@ -306,19 +308,41 @@ export function ChatHistory() {
 
   // Handle delete confirm
   const handleDeleteConfirm = useCallback(async () => {
-    if (!conversationToDelete) return;
+    if (!conversationToDelete || !userId) return;
+    const deletedId = conversationToDelete.id;
+    const wasActive = activeChat?.conversationId === deletedId;
+
     setIsDeleting(true);
     try {
-      await deleteChat(conversationToDelete.id, userId!);
-      queryClient.invalidateQueries({ queryKey: ["chat-history"] });
+      await deleteChat(deletedId, userId);
+
+      // Optimistic UI: drop from React Query cache + local store immediately
+      removeConversationFromHistoryCache(queryClient, userId, deletedId);
+      removeConversation(deletedId);
+
       setDeleteDialogOpen(false);
       setConversationToDelete(null);
+
+      if (wasActive && !pathname.startsWith("/chat")) {
+        router.push("/chat");
+      }
+
+      // Keep cache aligned with backend without blocking the UI
+      void queryClient.invalidateQueries({ queryKey: ["chat-history", userId] });
     } catch (err) {
       console.error("Delete failed:", err);
     } finally {
       setIsDeleting(false);
     }
-  }, [conversationToDelete, queryClient, userId]);
+  }, [
+    activeChat?.conversationId,
+    conversationToDelete,
+    pathname,
+    queryClient,
+    removeConversation,
+    router,
+    userId,
+  ]);
 
   if (isLoading) {
     return (

@@ -80,3 +80,14 @@ export function upsertConversationInHistoryCache(
     }
   );
 }
+
+export function removeConversationFromHistoryCache(
+  queryClient: QueryClient,
+  userId: string,
+  conversationId: string
+) {
+  queryClient.setQueryData<InsmedConversation[]>(
+    ["chat-history", userId],
+    (old = []) => old.filter((c) => c.id !== conversationId)
+  );
+}

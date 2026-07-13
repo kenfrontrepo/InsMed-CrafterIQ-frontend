@@ -118,6 +118,8 @@ interface ChatState {
   /** Load a conversation from history — fetches messages from API and populates the chat */
   loadConversationFromHistory: (conversationId: string, title: string, userId: string) => Promise<void>;
   renameConversation: (conversationId: string, title: string) => void;
+  /** Remove a conversation from local state; clears active chat if it was deleted */
+  removeConversation: (conversationId: string) => void;
   addMessage: (message: Omit<Message, "id" | "timestamp">) => void;
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
   setLoading: (loading: boolean) => void;
@@ -267,6 +269,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
           ? { ...state.activeChat, title }
           : state.activeChat;
       return { chats, activeChat };
+    });
+  },
+
+  removeConversation: (conversationId) => {
+    set((state) => {
+      const chats = state.chats.filter(
+        (chat) => chat.conversationId !== conversationId
+      );
+      const wasActive =
+        state.activeChat?.conversationId === conversationId;
+      return {
+        chats,
+        activeChat: wasActive ? null : state.activeChat,
+        followUpQuestions: wasActive ? [] : state.followUpQuestions,
+      };
     });
   },
 
