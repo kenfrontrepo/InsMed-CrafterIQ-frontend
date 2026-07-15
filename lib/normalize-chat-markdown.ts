@@ -49,12 +49,38 @@ function ensureTableSpacing(content: string): string {
   return out.join("\n");
 }
 
+/** True when a line starts with • or a markdown list marker (-/+/* + space). */
+function isBulletLine(line: string): boolean {
+  const trimmed = line.trim();
+  // Do not treat markdown emphasis (**bold**) as a list marker
+  return /^(?:\u2022\s*|[-+]\s+|\*\s+)/.test(trimmed);
+}
+
+/**
+ * Collapse repeated leading bullets (e.g. "• • text", "- • text") into one
+ * markdown list item. Returns null for bullet-only / empty lines.
+ *
+ * Note: require whitespace after -/+/* so "**bold**" is never stripped.
+ */
+function toMarkdownListItem(line: string): string | null {
+  const trimmed = line.trim();
+  if (!isBulletLine(trimmed)) return null;
+
+  // Strip every leading • / - / + / * marker so "• • text" → "text"
+  const content = trimmed
+    .replace(/^(?:(?:\u2022\s*)|(?:[-+*]\s+))+/, "")
+    .trim();
+  if (!content) return null;
+
+  return `- ${content}`;
+}
+
 function normalizeBulletBlock(block: string): string {
   const trimmed = block.trim();
   if (!trimmed || isMarkdownTableBlock(trimmed)) return block;
 
   const lines = trimmed.split("\n");
-  const hasBulletLines = lines.some((line) => /^\s*•\s+/.test(line.trim()));
+  const hasBulletLines = lines.some((line) => isBulletLine(line));
 
   if (hasBulletLines) {
     const out: string[] = [];
@@ -63,12 +89,17 @@ function normalizeBulletBlock(block: string): string {
     for (const line of lines) {
       const lineTrimmed = line.trim();
 
-      if (/^•\s+/.test(lineTrimmed)) {
+      if (isBulletLine(lineTrimmed)) {
+        const item = toMarkdownListItem(lineTrimmed);
+        if (!item) {
+          // Lone "•" / "• •" with no text — drop (avoids empty dots)
+          continue;
+        }
         if (!inList && out.length > 0 && out[out.length - 1] !== "") {
           out.push("");
         }
         inList = true;
-        out.push(`- ${lineTrimmed.replace(/^•\s+/, "")}`);
+        out.push(item);
         continue;
       }
 
@@ -87,8 +118,10 @@ function normalizeBulletBlock(block: string): string {
   if (!trimmed.includes("•")) return block;
 
   const items = trimmed
-    .split(/\s*•\s+/)
-    .map((item) => item.trim())
+    .split(/\s*•\s*/)
+    .map((item) =>
+      item.replace(/^(?:(?:\u2022\s*)|(?:[-+*]\s+))+/, "").trim()
+    )
     .filter(Boolean);
 
   if (items.length > 1) {
